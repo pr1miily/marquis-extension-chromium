@@ -91,8 +91,8 @@ pass/fail summary:
 Marquis has no server of its own and no analytics. Data stays in the browser (theme, weather unit and
 license key also follow Chrome Sync), except where a tool needs an outside service (weather, OCR,
 dictionary, PageSpeed, license check, feedback) and a small connection check behind the header's network
-indicator. The full list, with what each service receives, is in the in-app **Privacy Policy** (footer of
-the popup).
+indicator. The full list, with what each service receives, is in [PRIVACY.md](PRIVACY.md) (also shown in
+the popup footer → Privacy Policy).
 
 ## Third-party software
 
