@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>MARQUIS - DIFF CHECKER</title>
+    <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
+    <link rel="stylesheet" href="styles/bootstrap.min.css">
+    <link rel="stylesheet" href="styles/bootstrap-icons.css">  
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="scripts/theme_sync.js"></script>
+</head>
+<body class="d-flex flex-column min-vh-100 mq-page-dots">
+
+    <nav class="navbar mq-page-header shadow-sm z-3 flex-shrink-0">
+        <div class="container-fluid px-0 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="Logo" width="24" class="me-2 rounded">
+                <h6 class="mb-0 fw-bold text-white text-nowrap">MARQUIS - DIFF CHECKER</h6>
+            </div>
+            <button id="closeStudioBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm btn-lift-hover">Close Window</button>
+        </div>
+    </nav>
+
+    <div class="container-fluid flex-grow-1 p-3 d-flex flex-column">
+        <div class="card bg-body-tertiary border-secondary-subtle shadow-lg rounded-3 h-100 d-flex flex-column overflow-hidden flex-grow-1">
+            <div class="row g-0 h-100 flex-grow-1">
+                
+                <div class="col-6 border-end border-secondary-subtle d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body border-bottom border-secondary-subtle">
+                        <h6 class="mb-0 fw-bold text-danger text-uppercase" style="letter-spacing: 1px;"><i class="bi bi-file-earmark-minus me-2"></i>Original</h6>
+                    </div>
+                    <div class="flex-grow-1 position-relative bg-body-tertiary">
+                        <div id="originalResult" class="w-100 h-100 p-3 diff-font overflow-auto position-absolute top-0 start-0 custom-scrollbar text-body"></div>
+                    </div>
+                </div>
+
+                <div class="col-6 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body border-bottom border-secondary-subtle">
+                        <h6 class="mb-0 fw-bold text-success text-uppercase" style="letter-spacing: 1px;"><i class="bi bi-file-earmark-plus me-2"></i>Modified</h6>
+                    </div>
+                    <div class="flex-grow-1 position-relative bg-body-tertiary">
+                        <div id="changedResult" class="w-100 h-100 p-3 diff-font overflow-auto position-absolute top-0 start-0 custom-scrollbar text-body"></div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/bootstrap.bundle.min.js"></script>
+    <script src="scripts/diffchecker.min.js"></script>
+    <script src="scripts/diffWindow.js"></script>
+</body>
+</html>

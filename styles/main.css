@@ -1,0 +1,1421 @@
+/* ========================================== */
+/* DESIGN TOKENS                              */
+/* Spacing, radius and shadow come from Bootstrap's own --bs-* tokens and utilities;
+   these cover what Bootstrap does not define. */
+/* ========================================== */
+:root {
+    /* Type scale. 12px is the floor for UI text; display sizes (timers, emoji, stats) stay per feature. */
+    --mq-fs-xs: 0.75rem;    /* 12px: meta, badges, captions */
+    --mq-fs-sm: 0.8125rem;  /* 13px: labels, secondary text */
+    --mq-fs-base: 0.875rem; /* 14px: dense body text */
+
+    /* Motion */
+    --mq-dur: 250ms;        /* entrances (fade in) */
+    --mq-dur-slow: 1s;      /* attention cues (pulse, swing) */
+
+    --mq-focus-ring: var(--bs-primary);
+
+    /* Density. Controls: 14px text + 5px padding = 33px; compact (-sm): 13px + 4px = 30px. */
+    --mq-ctl-py: 0.3125rem;
+    --mq-ctl-px: 0.625rem;
+    --mq-ctl-sm-py: 0.25rem;
+    --mq-ctl-sm-px: 0.5rem;
+    --mq-pad: 0.75rem;      /* card, modal, accordion bodies */
+    --mq-pad-sm: 0.5rem;    /* headers, list rows, alerts */
+
+    --bs-body-font-size: var(--mq-fs-base);
+}
+
+/* ========================================== */
+/* DENSITY: Bootstrap components, sized once  */
+/* Markup keeps plain Bootstrap classes; these set the component variables they read. */
+/* ========================================== */
+h1, .h1 { font-size: 1.5rem; }
+h2, .h2 { font-size: 1.25rem; }
+h3, .h3 { font-size: 1.125rem; }
+h4, .h4 { font-size: 1.0625rem; }
+h5, .h5 { font-size: 1rem; }
+h6, .h6 { font-size: 0.9375rem; }
+
+/* .small is 0.875em, so nesting compounds below the 12px floor (14 -> 12.25 -> 10.7): shrink once only. */
+.small .small, .small small, small .small, small small,
+.small code, small code { font-size: inherit; }
+
+/* Bootstrap ships opacity-0/25/50/75/100 only; markup uses opacity-10 for decorative glows. */
+.opacity-10 { opacity: .1 !important; }
+
+/* .btn first: .btn-sm/.btn-lg must come after it to win at equal specificity. */
+.btn {
+    --bs-btn-padding-y: var(--mq-ctl-py);
+    --bs-btn-padding-x: 0.75rem;
+    --bs-btn-font-size: var(--mq-fs-base);
+}
+.btn-sm, .btn-group-sm > .btn {
+    --bs-btn-padding-y: var(--mq-ctl-sm-py);
+    --bs-btn-padding-x: var(--mq-ctl-sm-px);
+    --bs-btn-font-size: var(--mq-fs-sm);
+}
+.btn-lg, .btn-group-lg > .btn {
+    --bs-btn-padding-y: 0.4375rem;
+    --bs-btn-padding-x: 1rem;
+    --bs-btn-font-size: 1rem;
+}
+
+.form-control, .input-group-text {
+    padding: var(--mq-ctl-py) var(--mq-ctl-px);
+    font-size: var(--mq-fs-base);
+}
+.form-select {
+    padding: var(--mq-ctl-py) 2rem var(--mq-ctl-py) var(--mq-ctl-px);
+    background-position: right 0.5rem center;
+    font-size: var(--mq-fs-base);
+}
+.form-control-sm,
+.input-group-sm > .form-control,
+.input-group-sm > .input-group-text,
+.input-group-sm > .btn {
+    padding: var(--mq-ctl-sm-py) var(--mq-ctl-sm-px);
+    font-size: var(--mq-fs-sm);
+}
+.form-select-sm, .input-group-sm > .form-select {
+    padding: var(--mq-ctl-sm-py) 1.75rem var(--mq-ctl-sm-py) var(--mq-ctl-sm-px);
+    font-size: var(--mq-fs-sm);
+}
+.form-control-lg, .input-group-lg > .form-control, .input-group-lg > .input-group-text, .input-group-lg > .btn {
+    padding: 0.4375rem 0.75rem;
+    font-size: 1rem;
+}
+.form-label { margin-bottom: 0.25rem; }
+
+.card {
+    --bs-card-spacer-y: var(--mq-pad);
+    --bs-card-spacer-x: var(--mq-pad);
+    --bs-card-cap-padding-y: var(--mq-pad-sm);
+    --bs-card-cap-padding-x: var(--mq-pad);
+    --bs-card-title-spacer-y: 0.375rem;
+    /* Cards are 8px (= rounded-3). Bootstrap derives the inner radius from the global 6px radius,
+       so an 8px card got 5px headers and children painted over its corners. */
+    --bs-card-border-radius: var(--bs-border-radius-lg);
+    --bs-card-inner-border-radius: calc(var(--bs-card-border-radius) - var(--bs-card-border-width));
+}
+/* Radius utilities on a card (!important) must also drive its inner radius. */
+.card.rounded-0 { --bs-card-border-radius: 0px; }
+.card.rounded-1 { --bs-card-border-radius: var(--bs-border-radius-sm); }
+.card.rounded, .card.rounded-2 { --bs-card-border-radius: var(--bs-border-radius); }
+.card.rounded-4 { --bs-card-border-radius: var(--bs-border-radius-xl); }
+.modal {
+    --bs-modal-padding: var(--mq-pad);
+    --bs-modal-header-padding: var(--mq-pad-sm) var(--mq-pad);
+    --bs-modal-footer-gap: 0.375rem;
+}
+.nav {
+    --bs-nav-link-padding-y: 0.375rem;
+    --bs-nav-link-padding-x: 0.75rem;
+}
+.list-group {
+    --bs-list-group-item-padding-y: 0.375rem;
+    --bs-list-group-item-padding-x: var(--mq-pad);
+}
+.accordion {
+    --bs-accordion-btn-padding-y: var(--mq-pad-sm);
+    --bs-accordion-btn-padding-x: var(--mq-pad);
+    --bs-accordion-body-padding-y: var(--mq-pad);
+    --bs-accordion-body-padding-x: var(--mq-pad);
+}
+.accordion-button { font-size: var(--mq-fs-base); }
+.alert {
+    --bs-alert-padding-y: var(--mq-pad-sm);
+    --bs-alert-padding-x: var(--mq-pad);
+    --bs-alert-margin-bottom: var(--mq-pad);
+}
+.dropdown-menu {
+    --bs-dropdown-font-size: var(--mq-fs-base);
+    --bs-dropdown-padding-y: 0.25rem;
+    --bs-dropdown-item-padding-y: 0.3125rem;
+    --bs-dropdown-header-padding-y: 0.375rem;
+}
+/* Bootstrap sizes badges at .75em, which falls below 12px inside 14px text. */
+.badge { --bs-badge-font-size: var(--mq-fs-xs); }
+.toast { --bs-toast-padding-x: var(--mq-pad); --bs-toast-padding-y: var(--mq-pad-sm); }
+/* Bootstrap draws the track in --bs-secondary-bg, which equals the card background in several themes. */
+.form-range::-webkit-slider-runnable-track { background-color: var(--bs-border-color); }
+
+/* 🟢 Base body styles for ALL pages (Full Screen) */
+body {
+    margin: 0;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* 🟢 Constraints applied STRICTLY to the tiny extension popup */
+body.popup-mode {
+    width: 600px;
+    min-height: 200px;
+    max-height: 600px; /* Chrome's popup cap: the popup still grows with its content up to here */
+    border-radius: 16px;
+    overflow: hidden;
+}
+/* Header and footer stay put; only the area between them scrolls, so its scrollbar starts below the
+   header and ends above the footer. min-height: 0 lets the flex item shrink below its content. */
+body.popup-mode > nav,
+body.popup-mode > footer { flex: none; }
+body.popup-mode > .mq-popup-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* --- TRELLO-STYLE KANBAN CSS (REFINED) --- */
+.kanban-board-wrapper {
+    background-color: transparent;
+    transition: background 0.3s ease;
+    border-radius: 0.5rem;
+    min-height: 500px;
+}
+/* Columns are a sunken well on the board; cards an elevated surface on the column (theme tokens in every theme). */
+.kanban-list {
+    background-color: var(--mq-sunken, #f1f2f4);
+    border: 1px solid var(--mq-border-subtle, transparent);
+    border-radius: var(--mq-radius-lg, 0.5rem);
+    box-shadow: var(--mq-shadow-1, 0 1px 1px rgba(9, 30, 66, 0.25));
+    display: flex;
+    flex-direction: column;
+}
+.trello-card {
+    background-color: var(--mq-surface, var(--bs-body-bg));
+    border-radius: var(--mq-radius-lg, 0.5rem);
+    box-shadow: var(--mq-shadow-1, 0 1px 2px rgba(0, 0, 0, 0.15));
+    cursor: pointer;
+    position: relative;
+    border: 1px solid var(--mq-border-subtle, var(--bs-border-color-translucent));
+    transition: border-color 0.1s, box-shadow 0.1s;
+}
+.trello-card:hover {
+    border-color: var(--mq-accent, var(--bs-primary));
+}
+/* 🟢 FIX: Properly aligned floating edit button */
+.trello-card .edit-hover-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 10;
+    background: var(--mq-surface-2, var(--bs-body-bg));
+    border: 1px solid var(--mq-border-subtle, var(--bs-border-color));
+}
+.trello-card .edit-hover-btn:focus, .trello-card .edit-hover-btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+.trello-card:hover .edit-hover-btn {
+    opacity: 1;
+}
+.trello-cover {
+    height: 36px; /* Slightly taller for a better look */
+    border-radius: 7px 7px 0 0; /* Matches the inner curve of the card */
+    margin: -0.5rem -0.5rem 0.5rem -0.5rem; /* Negates the card's p-2 padding */
+    display: none;
+}
+
+.trello-card.has-cover .trello-cover {
+    display: block;
+}
+
+/* Optional: When a card has a cover, make the edit button sit nicely on top of the color */
+.trello-card.has-cover .edit-hover-btn {
+    top: 4px;
+    right: 4px;
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+[data-bs-theme="dark"] .trello-card.has-cover .edit-hover-btn {
+    background-color: rgba(0, 0, 0, 0.6) !important;
+}
+.trello-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.trello-label {
+    min-width: 40px;
+    height: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+/* Bootstrap badges are 0.75em; inside the 12px card meta row that fell below the 12px floor. */
+.card-indicators .badge {
+    font-size: 1em;
+}
+
+/* 🟢 UPGRADED: High-Visibility Search Highlight */
+.trello-card.search-match {
+    border-color: var(--mq-accent, #0d6efd) !important;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--mq-accent, #0d6efd) 80%, transparent) !important;
+    opacity: 1 !important;
+    transform: scale(1.03);
+    z-index: 50;
+    /* Faster animation (0.8s) makes the 'pulse' more obvious */
+    animation: searchPulse 0.8s infinite alternate ease-in-out;
+}
+
+.trello-card.search-mismatch {
+    opacity: 0.15 !important; /* Dimmier for better contrast */
+    filter: grayscale(100%) blur(1px);
+    pointer-events: none;
+}
+
+@keyframes searchPulse {
+    from {
+        box-shadow: 0 0 10px color-mix(in srgb, var(--mq-accent, #0d6efd) 40%, transparent);
+        transform: scale(1.02);
+    }
+    to {
+        box-shadow: 0 0 25px var(--mq-accent, #0d6efd);
+        transform: scale(1.05);
+    }
+}
+
+/* 🟢 FIX: Handle Kanban Title transparent focus state via CSS (CSP Safe) */
+#editKanbanCardTitle {
+    background-color: transparent !important;
+    transition: background-color 0.2s ease;
+}
+#editKanbanCardTitle:focus {
+    background-color: var(--bs-body-bg) !important;
+}
+
+/* SortableJS Drag Effects */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: var(--mq-hover, #091e420f) !important;
+    border: 2px dashed var(--mq-border, #091e4240) !important;
+}
+.sortable-drag {
+    transform: rotate(3deg);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+    cursor: grabbing !important;
+}
+
+/* --- full page ui animation --- */
+@keyframes scan-vertical {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+.scanner-line {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--bs-primary);
+    box-shadow: 0 0 10px var(--bs-primary), 0 0 20px var(--bs-primary);
+    animation: scan-vertical 1.5s infinite ease-in-out;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Safe Extension Hover Animations */
+.btn-bounce-hover { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
+.btn-bounce-hover:hover { transform: scale(1.05) translateY(-3px) !important; box-shadow: 0 10px 25px rgba(121, 40, 202, 0.5) !important; }
+
+.btn-lift-hover { transition: all 0.2s ease !important; }
+.btn-lift-hover:hover { transform: translateY(-2px) !important; }
+
+/* SEO preview title underline behavior (valid CSS hover) */
+#seoGoogleTitle { text-decoration: none; }
+#seoGoogleTitle:hover { text-decoration: underline !important; }
+
+/* FORCE RESIZE FIX */
+body.modal-open {
+    height: auto !important;
+    min-height: 600px !important; /* Forces max allowed height when modal is open */
+}
+
+/* Ensure modal dialog takes up space but doesn't overflow weirdly */
+.modal {
+    position: absolute !important; 
+    overflow-y: auto !important; 
+    overflow-x: hidden !important;
+}
+
+.modal-dialog {
+    margin: 10px auto !important; /* tighter margins */
+}
+
+/* Styling for dropdown groups */
+optgroup {
+    font-weight: 800;
+    color: var(--bs-primary) !important; 
+    background-color: var(--bs-body-bg) !important; /* 🟢 FIX: Force theme background */
+    font-style: normal;
+    font-size: var(--mq-fs-sm) !important; 
+}
+option {
+    font-weight: normal;
+    color: var(--bs-body-color) !important;
+    background-color: var(--bs-body-bg) !important; /* 🟢 FIX: Force theme background */
+    padding: 4px;
+    font-size: var(--mq-fs-sm) !important; 
+}
+
+/* Highlighter Chip Styling */
+.hl-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 8px 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: var(--mq-fs-sm);
+    color: #212529;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.05);
+    user-select: none;
+}
+
+.hl-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+    filter: brightness(0.98);
+}
+
+.hl-chip:active {
+    transform: scale(0.98);
+}
+
+.hl-chip .badge-count {
+    background-color: rgba(255, 255, 255, 0.6);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: var(--mq-fs-xs);
+    margin-left: 8px;
+    font-weight: 700;
+}
+
+.hl-chip-close {
+    background: transparent;
+    border: none;
+    color: rgba(0,0,0,0.4);
+    margin-left: 6px;
+    padding: 2px;
+    line-height: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.hl-chip-close:hover {
+    background-color: rgba(0,0,0,0.1);
+    color: #dc3545; /* Red on hover */
+}
+
+/* Task due-date chip in Notes & Tasks */
+.calendar-event { font-size: var(--mq-fs-xs); font-weight: 600; line-height: 1.2; padding: 2px 6px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: transform 0.1s; }
+.calendar-event:hover { transform: scale(1.02); opacity: 0.9; }
+
+/* --- DIFF CHECKER --- */
+.diff-font { font-family: 'Menlo', 'Monaco', 'Consolas', monospace; font-size: var(--mq-fs-sm); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.resize-none { resize: none; outline: none; box-shadow: none !important; }
+/* Added / removed runs: status tints that read in every theme (one definition; there were two). */
+.diff-added { background-color: color-mix(in srgb, var(--mq-success, #198754) 24%, transparent); color: inherit; text-decoration: none; border-radius: 2px; }
+.diff-removed { background-color: color-mix(in srgb, var(--mq-danger, #dc3545) 24%, transparent); color: inherit; text-decoration: line-through; border-radius: 2px; }
+.group-hover:hover { background-color: var(--mq-bg, var(--bs-body-bg)); border-color: var(--mq-accent, var(--bs-primary)) !important; transform: translateY(-1px); transition: all 0.2s ease-in-out; }
+
+/* =========================== */
+/* FOCUS MODE BACKGROUND       */
+/* =========================== */
+
+/* The container holding the background image */
+#focusBgContainer {
+    /* Placeholder Online GIF - REPLACE THIS with url('../img/your-gif.gif') for local use */
+    background-image: url('../img/neoncat.gif');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: relative;
+    /* Rounded corners to match parent card */
+    border-bottom-left-radius: var(--bs-card-border-radius);
+    border-bottom-right-radius: var(--bs-card-border-radius);
+    overflow: hidden; /* Ensure image doesn't bleed out */
+}
+
+/* The dark overlay to make text readable */
+#focusBgContainer::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6); /* Dark overlay: Increase 0.6 for darker, decrease for lighter */
+    z-index: 0;
+    backdrop-filter: blur(2px); /* Optional: slight blur effect */
+}
+
+/* Ensure content sits above the overlay */
+#focusBgContainer > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Force text colors to white/light for contrast against dark bg */
+#focusSection .card-body .text-body,
+#focusSection .card-body .text-muted,
+#focusSection .card-body small,
+#focusSection .card-body h5,
+#focusSection .accordion-button {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Add subtle shadow to big emoji and timer for pop */
+#focusCharacter, #focusTimerDisplay {
+    text-shadow: 0 4px 8px rgba(0,0,0,0.6);
+}
+
+/* Make the timer background semi-transparent white */
+#focusSection .card.bg-body.shadow-sm {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 🟢 FIX: Stop the Focus Mode background CSS from turning the blocked sites list text white */
+#blockedSiteList .list-group-item,
+#blockedSiteList .list-group-item span,
+#blockedSiteList .list-group-item .text-body {
+    color: var(--bs-body-color) !important;
+}
+
+/* --- STICKY NOTE RICH TEXT TOOLBAR --- */
+.sn-cmd {
+    color: var(--mq-text, var(--bs-body-color));
+    background-color: transparent;
+    border-radius: var(--mq-radius-sm, 4px) !important;
+    transition: all 0.15s ease-in-out;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.sn-cmd:hover {
+    background-color: var(--mq-selected, rgba(13, 110, 253, 0.15)) !important;
+    color: var(--mq-accent, #0d6efd) !important;
+}
+
+/* The palette button keeps its red icon (it shows the text-colour tool). */
+#sn-color-btn { color: #ef4444 !important; }
+#sn-color-btn:hover { background-color: rgba(239, 68, 68, 0.15) !important; }
+#sn-emoji-btn:hover { background-color: var(--mq-hover, rgba(255, 193, 7, 0.15)) !important; }
+
+/* Keep headers visible while scrolling */
+.sticky-top {
+	z-index: 1;
+}
+
+
+/* Drag handles (Kanban, dock) */
+.draggable {
+	cursor: move;
+	transition: all 0.3s ease;
+}
+
+.bi-record-circle {
+	font-size: 1.1em;
+	vertical-align: text-top;
+}
+
+/* Theme Transitions */
+html,
+body,
+.card,
+.form-control,
+.form-select,
+.list-group-item,
+.dropdown-menu,
+.input-group-text,
+.btn {
+	transition:
+	background-color 0.3s ease,
+	color 0.3s ease,
+	border-color 0.3s ease,
+	box-shadow 0.3s ease;
+}
+
+/* Small print defaults to the secondary text colour; :where() keeps it below any colour utility
+   (the old dark-only `small { ... !important }` turned <small class="text-danger"> grey). */
+:where([data-marquis-theme]) :where(small, .form-text) { color: var(--mq-text-2); }
+
+/* Fields: one surface, text and border colour in every theme (!important beats the bg-* utilities
+   sections still put on inputs; Stage 3 removes those). */
+[data-marquis-theme] :is(.form-control, .form-select),
+[data-marquis-theme] :is(.form-control, .form-select):focus {
+	background-color: var(--mq-bg) !important;
+	color: var(--mq-text) !important;
+	border-color: var(--mq-border) !important;
+}
+[data-marquis-theme] .form-control::placeholder {
+	color: var(--mq-text-muted) !important;
+	opacity: 1;
+}
+
+/* Dark themes: light select arrow */
+[data-bs-theme="dark"] .form-select {
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%23ffffff' d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");
+}
+[data-bs-theme="dark"] .card.bg-light {
+	background-color: var(--bs-secondary-bg) !important;
+}
+[data-bs-theme="dark"] .navbar:not(.navbar-dark) {
+	--bs-navbar-color: var(--bs-body-color);
+	--bs-navbar-hover-color: var(--bs-emphasis-color);
+}
+
+#historyList {
+	max-height: 200px;
+	overflow-y: auto;
+}
+#historyList li {
+	padding: 3px 0;
+	border-bottom: 1px solid var(--mq-divider, #eee);
+}
+.calc-btn {
+	height: 50px;
+	font-size: 1.2rem;
+}
+
+/* ========================================== */
+/* 🎨 MARQUIS CUSTOM THEME ENGINE             */
+/* Each theme sets only its palette (Bootstrap base colours + the few --mq-* it overrides).
+   Every other colour derives from that palette here, and components read only these tokens.
+   This block comes first so a palette below can override any token (same specificity, later wins);
+   var() still resolves against the palette's values. */
+/* ========================================== */
+[data-marquis-theme] {
+    /* Surfaces */
+    --mq-bg: var(--bs-body-bg);                  /* main background, fields */
+    --mq-surface: var(--bs-body-bg);             /* elevated: menus, modals, popovers */
+    --mq-surface-2: var(--bs-secondary-bg);      /* secondary: neutral buttons, toolbars, chips */
+    --mq-sunken: var(--bs-tertiary-bg);          /* card bodies, wells */
+    /* Text */
+    --mq-text: var(--bs-body-color);
+    --mq-text-2: color-mix(in srgb, var(--bs-body-color) 80%, var(--bs-body-bg));     /* labels, secondary */
+    --mq-text-muted: color-mix(in srgb, var(--bs-body-color) 64%, var(--bs-body-bg)); /* meta, hints */
+    /* Lines */
+    --mq-border: var(--bs-border-color);
+    --mq-border-subtle: var(--bs-border-color);   /* themes with a loud identity border tone this down */
+    --mq-divider: var(--mq-border-subtle);
+    /* Accent and interaction states */
+    --mq-accent: var(--bs-primary);
+    --mq-on-accent: var(--bs-body-bg);           /* text and icons on an accent fill */
+    --mq-link: var(--mq-accent);
+    --mq-hover: color-mix(in srgb, var(--bs-body-color) 9%, transparent);
+    --mq-selected: color-mix(in srgb, var(--mq-accent) 22%, transparent);
+    --mq-focus: var(--mq-accent);
+    /* Status tones for text, icons and outlines (solid status buttons keep Bootstrap's fills) */
+    --mq-success: #4ade80;
+    --mq-warning: #fbbf24;
+    --mq-danger: #f87171;
+    --mq-info: #38bdf8;
+    /* Elevation */
+    --mq-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --mq-shadow-2: 0 10px 28px rgb(0 0 0 / 0.45);
+    /* Scrollbars */
+    --mq-scroll-thumb: color-mix(in srgb, var(--bs-body-color) 40%, transparent);
+    --mq-scroll-thumb-hover: color-mix(in srgb, var(--bs-body-color) 60%, transparent);
+    --mq-scroll-track: transparent;
+    /* Geometry */
+    --mq-radius-sm: var(--bs-border-radius-sm);  /* 4px: inner controls, chips */
+    --mq-radius: var(--bs-border-radius);        /* 6px: buttons, fields */
+    --mq-radius-lg: var(--bs-border-radius-lg);  /* 8px: cards, menus, modals */
+    /* Check, radio and switch marks drawn in --mq-on-accent (dark here; the light theme swaps them). */
+    --mq-check-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%230f172a' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    --mq-radio-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%230f172a'/%3e%3c/svg%3e");
+    --mq-switch-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230f172a'/%3e%3c/svg%3e");
+
+    /* Bootstrap's own root colours, so every utility and component that reads them follows the theme. */
+    --bs-secondary-color: var(--mq-text-2);
+    --bs-tertiary-color: var(--mq-text-muted);
+    --bs-emphasis-color: var(--mq-text);
+    --bs-border-color-translucent: var(--mq-border);
+    --bs-secondary-border-subtle: var(--mq-border-subtle);
+    --bs-focus-ring-color: color-mix(in srgb, var(--mq-accent) 35%, transparent);
+    --bs-link-color: var(--mq-link);
+    --bs-link-hover-color: var(--mq-text);
+    --mq-focus-ring: var(--mq-focus);
+}
+
+/* Default Theme */
+[data-marquis-theme="default"] {
+    --bs-body-bg: #1e293b;
+    --bs-body-color: #f8fafc;
+    --bs-tertiary-bg: #0f172a;
+    --bs-secondary-bg: #1e293b;
+    --bs-border-color: #334155;
+    --bs-primary: #3b82f6;
+    --bs-primary-rgb: 59, 130, 246;
+    --mq-on-accent: #0f172a;   /* 4.9:1 on the accent (#1e293b was 4.0:1) */
+    --mq-link: #60a5fa;        /* the accent is 4.0:1 as text on #1e293b */
+}
+
+/* Light Theme */
+[data-marquis-theme="light"] {
+    --bs-body-bg: #ffffff;
+    --bs-body-color: #0f172a;
+    --bs-tertiary-bg: #f8fafc;
+    --bs-secondary-bg: #f1f5f9;
+    --bs-border-color: #e2e8f0;
+    --bs-primary: #0f172a;
+    --bs-primary-rgb: 15, 23, 42;
+    --mq-surface: #ffffff;
+    --mq-border-subtle: #e2e8f0;
+    /* Bootstrap's info (#0dcaf0) and warning (#ffc107) are ~1.9:1 and ~1.6:1 on white. */
+    --mq-success: #15803d;
+    --mq-warning: #b45309;
+    --mq-danger: #b91c1c;
+    --mq-info: #0e7490;
+    --mq-shadow-1: 0 1px 2px rgb(15 23 42 / 0.08);
+    --mq-shadow-2: 0 10px 28px rgb(15 23 42 / 0.16);
+    --mq-scroll-thumb: color-mix(in srgb, var(--bs-body-color) 50%, transparent);
+    --mq-scroll-thumb-hover: color-mix(in srgb, var(--bs-body-color) 68%, transparent);
+    --mq-check-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    --mq-radio-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
+    --mq-switch-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+}
+
+/* Light theme: yellow and cyan icons were ~1.6:1 on white (favourite stars, header icons), so they take the
+   theme's darker warning/info tones like text does. On coloured cards and chips (white text, or an accent or
+   dark fill, e.g. the blue Weather card) they keep the bright tone. */
+[data-marquis-theme="light"] :is(.text-white, .bg-primary, .bg-dark) .bi.text-warning { color: #ffc107 !important; }
+[data-marquis-theme="light"] :is(.text-white, .bg-primary, .bg-dark) .bi.text-info { color: #0dcaf0 !important; }
+
+/* OLED Theme (Pure Black) */
+[data-marquis-theme="oled"] {
+    --bs-body-bg: #000000;
+    --bs-body-color: #e2e8f0;
+    --bs-tertiary-bg: #0a0a0a;
+    --bs-secondary-bg: #111111;
+    --bs-border-color: #333333;
+    --mq-link: #6ea8fe;        /* Bootstrap's #0d6efd accent is 4.4:1 as text on black */
+}
+
+/* Neon Theme */
+[data-marquis-theme="neon"] {
+    --bs-body-bg: #050505;
+    --bs-body-color: #00ffaa;
+    --bs-tertiary-bg: #0a110a;
+    --bs-secondary-bg: #0d1a0d;
+    --bs-border-color: #00ffaa;
+    --bs-primary: #00ffaa;
+    --bs-primary-rgb: 0, 255, 170;
+    --bs-link-hover-color: #ffffff;
+    --mq-border-subtle: color-mix(in srgb, var(--bs-border-color) 45%, var(--bs-body-bg));
+}
+
+/* Dracula Theme */
+[data-marquis-theme="dracula"] {
+    --bs-body-bg: #282a36;
+    --bs-body-color: #f8f8f2;
+    --bs-tertiary-bg: #1e1f29;
+    --bs-secondary-bg: #44475a;
+    --bs-border-color: #bd93f9;
+    --bs-primary: #ff79c6;
+    --bs-primary-rgb: 255, 121, 198;
+    --mq-border-subtle: color-mix(in srgb, var(--bs-border-color) 45%, var(--bs-body-bg));
+}
+
+/* Cyber Theme */
+[data-marquis-theme="cyber"] {
+    --bs-body-bg: #27272a;
+    --bs-body-color: #fde047;
+    --bs-tertiary-bg: #18181b;
+    --bs-secondary-bg: #3f3f46;
+    --bs-border-color: #fde047;
+    --bs-primary: #ec4899;
+    --bs-primary-rgb: 236, 72, 153;
+    --mq-link: #fde047;
+    --mq-on-accent: #18181b;   /* 5.0:1 on the pink accent (#27272a was 4.2:1) */
+    --mq-border-subtle: color-mix(in srgb, var(--bs-border-color) 45%, var(--bs-body-bg));
+}
+
+/* Aqua Theme */
+[data-marquis-theme="aqua"] {
+    --bs-body-bg: #0f172a;
+    --bs-body-color: #a5f3fc;
+    --bs-tertiary-bg: #020617;
+    --bs-secondary-bg: #1e293b;
+    --bs-border-color: #06b6d4;
+    --bs-primary: #22d3ee;
+    --bs-primary-rgb: 34, 211, 238;
+    --mq-border-subtle: color-mix(in srgb, var(--bs-border-color) 45%, var(--bs-body-bg));
+}
+
+/* 🟢 GLASS & GHOST THEMES */
+[data-marquis-theme="glass"] {
+    --bs-body-bg: #1e293b;
+    --bs-body-color: #ffffff;
+    --bs-tertiary-bg: rgba(15, 23, 42, 0.6);
+    --bs-secondary-bg: rgba(51, 65, 85, 0.6);
+    --bs-border-color: rgba(255, 255, 255, 0.15);
+    --bs-primary: #ffffff;
+    background: linear-gradient(135deg, #0f172a 0%, #3b82f6 50%, #0f172a 100%) !important;
+    background-attachment: fixed !important;
+}
+
+[data-marquis-theme="custom-alpha"] {
+    --bs-body-bg: #000000;
+    --bs-body-color: #ffffff;
+    --bs-tertiary-bg: rgba(0, 0, 0, 0.5);
+    --bs-secondary-bg: rgba(30, 30, 30, 0.5);
+    --bs-border-color: rgba(255, 255, 255, 0.2);
+    --bs-primary: #ffffff;
+    background: radial-gradient(circle at top right, #334155, #000000) !important;
+    background-attachment: fixed !important;
+}
+
+/* 🟢 Force the UI cards AND the new header/footer to blur! */
+[data-marquis-theme="glass"] .card, 
+[data-marquis-theme="glass"] .modal-content,
+[data-marquis-theme="glass"] .navbar,
+[data-marquis-theme="glass"] footer,
+[data-marquis-theme="custom-alpha"] .card, 
+[data-marquis-theme="custom-alpha"] .modal-content,
+[data-marquis-theme="custom-alpha"] .navbar,
+[data-marquis-theme="custom-alpha"] footer {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    background-color: var(--bs-tertiary-bg) !important;
+    border-color: var(--bs-border-color) !important;
+}
+
+/* Fields marked bg-transparent (inline editors, search-in-pill) stay transparent. */
+[data-marquis-theme] .form-control.bg-transparent,
+[data-marquis-theme] .form-select.bg-transparent {
+    background-color: transparent !important;
+}
+
+/* 🟢 FIX: Force Bootstrap utility classes to obey our Custom Theme variables */
+.text-body {
+    color: var(--bs-body-color) !important;
+}
+.bg-body {
+    background-color: var(--bs-body-bg) !important;
+}
+.bg-body-tertiary {
+    background-color: var(--bs-tertiary-bg) !important;
+}
+
+/* ========================================== */
+/* BOOTSTRAP COMPONENTS ON THEME TOKENS       */
+/* Scoped to themed pages, so pages without a Marquis theme keep Bootstrap's defaults until they migrate.
+   [data-marquis-theme] .x (0,2,0) beats Bootstrap's own .x component variables (0,1,0). */
+/* ========================================== */
+
+/* Buttons. Roles: primary = accent fill; secondary/light/dark = neutral surface; outline-* = quiet;
+   success/danger/warning/info = status (Bootstrap fills, theme-readable outlines); link = text action. */
+[data-marquis-theme] .btn-primary {
+    --bs-btn-color: var(--mq-on-accent);
+    --bs-btn-bg: var(--mq-accent);
+    --bs-btn-border-color: var(--mq-accent);
+    --bs-btn-hover-color: var(--mq-on-accent);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--mq-accent) 85%, var(--mq-bg));
+    --bs-btn-hover-border-color: var(--bs-btn-hover-bg);
+    --bs-btn-active-color: var(--mq-on-accent);
+    --bs-btn-active-bg: color-mix(in srgb, var(--mq-accent) 72%, var(--mq-bg));
+    --bs-btn-active-border-color: var(--bs-btn-active-bg);
+    --bs-btn-disabled-color: var(--mq-on-accent);
+    --bs-btn-disabled-bg: var(--mq-accent);
+    --bs-btn-disabled-border-color: var(--mq-accent);
+}
+[data-marquis-theme] .btn-outline-primary {
+    --bs-btn-color: var(--mq-accent);
+    --bs-btn-border-color: var(--mq-accent);
+    --bs-btn-hover-color: var(--mq-on-accent);
+    --bs-btn-hover-bg: var(--mq-accent);
+    --bs-btn-hover-border-color: var(--mq-accent);
+    --bs-btn-active-color: var(--mq-on-accent);
+    --bs-btn-active-bg: var(--mq-accent);
+    --bs-btn-active-border-color: var(--mq-accent);
+    --bs-btn-disabled-color: var(--mq-accent);
+    --bs-btn-disabled-border-color: var(--mq-accent);
+}
+[data-marquis-theme] :is(.btn-secondary, .btn-light, .btn-dark) {
+    --bs-btn-color: var(--mq-text);
+    --bs-btn-bg: var(--mq-surface-2);
+    --bs-btn-border-color: var(--mq-border-subtle);
+    --bs-btn-hover-color: var(--mq-text);
+    --bs-btn-hover-bg: color-mix(in srgb, var(--mq-surface-2) 86%, var(--mq-text));
+    --bs-btn-hover-border-color: var(--mq-border);
+    --bs-btn-active-color: var(--mq-text);
+    --bs-btn-active-bg: color-mix(in srgb, var(--mq-surface-2) 78%, var(--mq-text));
+    --bs-btn-active-border-color: var(--mq-border);
+    --bs-btn-disabled-color: var(--mq-text-muted);
+    --bs-btn-disabled-bg: var(--mq-surface-2);
+    --bs-btn-disabled-border-color: var(--mq-border-subtle);
+}
+[data-marquis-theme] :is(.btn-outline-secondary, .btn-outline-light, .btn-outline-dark) {
+    --bs-btn-color: var(--mq-text-2);
+    --bs-btn-border-color: var(--mq-border-subtle);
+    --bs-btn-hover-color: var(--mq-text);
+    --bs-btn-hover-bg: var(--mq-hover);
+    --bs-btn-hover-border-color: var(--mq-border);
+    --bs-btn-active-color: var(--mq-text);
+    --bs-btn-active-bg: var(--mq-selected);
+    --bs-btn-active-border-color: var(--mq-accent);
+    --bs-btn-disabled-color: var(--mq-text-muted);
+    --bs-btn-disabled-border-color: var(--mq-border-subtle);
+}
+[data-marquis-theme] .btn-outline-success { --bs-btn-color: var(--mq-success); --bs-btn-border-color: var(--mq-success); }
+[data-marquis-theme] .btn-outline-danger { --bs-btn-color: var(--mq-danger); --bs-btn-border-color: var(--mq-danger); }
+[data-marquis-theme] .btn-outline-warning { --bs-btn-color: var(--mq-warning); --bs-btn-border-color: var(--mq-warning); }
+[data-marquis-theme] .btn-outline-info { --bs-btn-color: var(--mq-info); --bs-btn-border-color: var(--mq-info); }
+[data-marquis-theme] .btn-link {
+    --bs-btn-color: var(--mq-link);
+    --bs-btn-hover-color: var(--mq-text);
+    --bs-btn-active-color: var(--mq-text);
+    --bs-btn-disabled-color: var(--mq-text-muted);
+}
+
+/* Text, background and border utilities */
+[data-marquis-theme] .text-primary { color: var(--mq-accent) !important; }
+[data-marquis-theme] :is(.text-secondary, .text-muted, .text-body-secondary) { color: var(--mq-text-2) !important; }
+[data-marquis-theme] .text-body-tertiary { color: var(--mq-text-muted) !important; }
+/* Always-white islands (SEO search-result preview) keep a grey that reads on white in every theme. */
+[data-marquis-theme] .bg-white :is(.text-secondary, .text-muted, .text-body-secondary) { color: #5f6368 !important; }
+[data-marquis-theme] .text-success { color: var(--mq-success) !important; }
+[data-marquis-theme] .text-danger { color: var(--mq-danger) !important; }
+[data-marquis-theme] .text-warning { color: var(--mq-warning) !important; }
+[data-marquis-theme] .text-info { color: var(--mq-info) !important; }
+/* bg-primary honours .bg-opacity-* (Bootstrap reads --bs-primary-rgb, which some themes don't set). */
+[data-marquis-theme] .bg-primary {
+    background-color: color-mix(in srgb, var(--mq-accent) calc(var(--bs-bg-opacity, 1) * 100%), transparent) !important;
+}
+[data-marquis-theme] .badge.bg-primary { --bs-badge-color: var(--mq-on-accent); }
+/* An accent fill keeps its own text colour even where markup adds .text-white: Glass and Ghost have a
+   white accent, so white text and icons on it vanished (profile photo badge, calculator keys, chips). */
+[data-marquis-theme] :is(.bg-primary, .btn-primary).text-white { color: var(--mq-on-accent) !important; }
+/* Accent-coloured text or icons inside an accent fill would vanish (active pill, primary button); status-
+   coloured icons there clash with it (yellow note icon on the Notes tab's blue/pink/cyan active pill). */
+[data-marquis-theme] :is(.btn-primary, .nav-pills .nav-link.active, .badge.bg-primary) :is(.text-primary, .bi.text-warning, .bi.text-info, .bi.text-success, .bi.text-danger) { color: inherit !important; }
+[data-marquis-theme] .border-primary { border-color: var(--mq-accent) !important; }
+[data-marquis-theme] .border-secondary { border-color: var(--mq-border) !important; }
+
+/* Form controls */
+[data-marquis-theme] .form-check-input {
+    background-color: var(--mq-bg);
+    border-color: var(--mq-border);
+}
+[data-marquis-theme] .form-check-input:checked,
+[data-marquis-theme] .form-check-input[type="checkbox"]:indeterminate {
+    background-color: var(--mq-accent);
+    border-color: var(--mq-accent);
+}
+[data-marquis-theme] .form-check-input:checked[type="checkbox"] { --bs-form-check-bg-image: var(--mq-check-img); }
+[data-marquis-theme] .form-check-input:checked[type="radio"] { --bs-form-check-bg-image: var(--mq-radio-img); }
+[data-marquis-theme] .form-switch .form-check-input:checked { --bs-form-switch-bg: var(--mq-switch-img); }
+[data-marquis-theme] .form-check-input:focus { border-color: var(--mq-accent); }
+[data-marquis-theme] .form-range::-webkit-slider-thumb { background-color: var(--mq-accent); }
+[data-marquis-theme] .form-range::-webkit-slider-thumb:active { background-color: color-mix(in srgb, var(--mq-accent) 70%, var(--mq-text)); }
+[data-marquis-theme] .form-range::-moz-range-thumb { background-color: var(--mq-accent); }
+
+/* Menus, lists, navigation */
+[data-marquis-theme] .dropdown-menu {
+    --bs-dropdown-bg: var(--mq-surface);
+    --bs-dropdown-color: var(--mq-text);
+    --bs-dropdown-border-color: var(--mq-border-subtle);
+    --bs-dropdown-border-radius: var(--mq-radius-lg);
+    --bs-dropdown-inner-border-radius: calc(var(--mq-radius-lg) - 1px);
+    --bs-dropdown-box-shadow: var(--mq-shadow-2);
+    --bs-dropdown-divider-bg: var(--mq-divider);
+    --bs-dropdown-link-color: var(--mq-text);
+    --bs-dropdown-link-hover-color: var(--mq-text);
+    --bs-dropdown-link-hover-bg: var(--mq-hover);
+    --bs-dropdown-link-active-color: var(--mq-text);
+    --bs-dropdown-link-active-bg: var(--mq-selected);
+    --bs-dropdown-link-disabled-color: var(--mq-text-muted);
+    --bs-dropdown-header-color: var(--mq-text-muted);
+    box-shadow: var(--bs-dropdown-box-shadow);
+}
+[data-marquis-theme] .list-group {
+    --bs-list-group-color: var(--mq-text);
+    --bs-list-group-bg: var(--mq-bg);
+    --bs-list-group-border-color: var(--mq-border);
+    --bs-list-group-action-color: var(--mq-text-2);
+    --bs-list-group-action-hover-color: var(--mq-text);
+    --bs-list-group-action-hover-bg: var(--mq-hover);
+    --bs-list-group-action-active-color: var(--mq-text);
+    --bs-list-group-action-active-bg: var(--mq-selected);
+    --bs-list-group-active-color: var(--mq-text);
+    --bs-list-group-active-bg: var(--mq-selected);
+    --bs-list-group-active-border-color: var(--mq-accent);
+    --bs-list-group-disabled-color: var(--mq-text-muted);
+    --bs-list-group-disabled-bg: var(--mq-bg);
+}
+[data-marquis-theme] .nav {
+    --bs-nav-link-color: var(--mq-text-2);
+    --bs-nav-link-hover-color: var(--mq-text);
+    --bs-nav-link-disabled-color: var(--mq-text-muted);
+}
+[data-marquis-theme] .nav-pills {
+    --bs-nav-pills-link-active-color: var(--mq-on-accent);
+    --bs-nav-pills-link-active-bg: var(--mq-accent);
+}
+[data-marquis-theme] .nav-tabs {
+    --bs-nav-tabs-border-color: var(--mq-border-subtle);
+    --bs-nav-tabs-link-hover-border-color: var(--mq-border-subtle);
+    --bs-nav-tabs-link-active-color: var(--mq-text);
+    --bs-nav-tabs-link-active-bg: var(--mq-surface);
+    --bs-nav-tabs-link-active-border-color: var(--mq-border-subtle) var(--mq-border-subtle) var(--mq-surface);
+}
+
+/* Overlays */
+[data-marquis-theme] .modal {
+    --bs-modal-bg: var(--mq-surface);
+    --bs-modal-color: var(--mq-text);
+    --bs-modal-border-color: var(--mq-border-subtle);
+    --bs-modal-border-radius: var(--mq-radius-lg);
+    --bs-modal-inner-border-radius: calc(var(--mq-radius-lg) - 1px);
+    --bs-modal-box-shadow: var(--mq-shadow-2);
+    --bs-modal-header-border-color: var(--mq-divider);
+    --bs-modal-footer-border-color: var(--mq-divider);
+}
+[data-marquis-theme] .popover {
+    --bs-popover-bg: var(--mq-surface);
+    --bs-popover-border-color: var(--mq-border-subtle);
+    --bs-popover-border-radius: var(--mq-radius-lg);
+    --bs-popover-inner-border-radius: calc(var(--mq-radius-lg) - 1px);
+    --bs-popover-box-shadow: var(--mq-shadow-2);
+    --bs-popover-header-bg: var(--mq-surface-2);
+    --bs-popover-header-color: var(--mq-text);
+    --bs-popover-body-color: var(--mq-text);
+}
+[data-marquis-theme] .tooltip {
+    --bs-tooltip-bg: var(--mq-text);
+    --bs-tooltip-color: var(--mq-bg);
+    --bs-tooltip-font-size: var(--mq-fs-xs);
+}
+[data-marquis-theme] .toast {
+    --bs-toast-bg: var(--mq-surface);
+    --bs-toast-color: var(--mq-text);
+    --bs-toast-border-color: var(--mq-border-subtle);
+    --bs-toast-box-shadow: var(--mq-shadow-2);
+    --bs-toast-header-bg: var(--mq-surface-2);
+    --bs-toast-header-color: var(--mq-text);
+    --bs-toast-header-border-color: var(--mq-divider);
+}
+[data-marquis-theme] .accordion {
+    --bs-accordion-color: var(--mq-text);
+    --bs-accordion-bg: var(--mq-bg);
+    --bs-accordion-border-color: var(--mq-border-subtle);
+    --bs-accordion-btn-color: var(--mq-text);
+    --bs-accordion-btn-bg: var(--mq-bg);
+    --bs-accordion-active-color: var(--mq-text);
+    --bs-accordion-active-bg: var(--mq-selected);
+    --bs-accordion-btn-focus-box-shadow: none;
+}
+[data-marquis-theme] :is(.progress, .progress-stacked) {
+    --bs-progress-bg: var(--mq-surface-2);
+    --bs-progress-bar-bg: var(--mq-accent);
+    --bs-progress-bar-color: var(--mq-on-accent);
+}
+
+/* Scrollbars: one themed style for every scroll container (Chrome/Edge via ::-webkit-scrollbar, which also gives
+   the hover state; Firefox via the standard properties). Thin thumb inset 2px from the edge, transparent track,
+   so rounded containers keep their corners. */
+[data-marquis-theme]::-webkit-scrollbar,
+[data-marquis-theme] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-marquis-theme]::-webkit-scrollbar-track,
+[data-marquis-theme] ::-webkit-scrollbar-track,
+[data-marquis-theme]::-webkit-scrollbar-corner,
+[data-marquis-theme] ::-webkit-scrollbar-corner { background: var(--mq-scroll-track); }
+[data-marquis-theme]::-webkit-scrollbar-thumb,
+[data-marquis-theme] ::-webkit-scrollbar-thumb {
+    min-height: 32px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--mq-scroll-thumb) padding-box;
+}
+[data-marquis-theme]::-webkit-scrollbar-thumb:hover,
+[data-marquis-theme] ::-webkit-scrollbar-thumb:hover { background-color: var(--mq-scroll-thumb-hover); }
+@supports not selector(::-webkit-scrollbar) {
+    [data-marquis-theme] { scrollbar-color: var(--mq-scroll-thumb) var(--mq-scroll-track); }
+    [data-marquis-theme], [data-marquis-theme] * { scrollbar-width: thin; }
+}
+
+/* Transparency checkerboard behind image previews (replaces missing img/checkerboard.png).
+   Semi-transparent squares so it reads on both light and dark themes. */
+.bg-checker {
+    background: repeating-conic-gradient(rgba(128, 128, 128, 0.25) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+}
+
+/* ========================================== */
+/* SHARED COMPONENTS                          */
+/* ========================================== */
+
+/* Section card: <div class="card ..."> > <div class="card-header mq-section-header"> + h6 title + actions.
+   Plain 1px border all round: no coloured identity stripe (a tool's colour lives on its icon tile only). */
+.mq-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.25rem var(--mq-pad);
+    background-color: var(--bs-body-bg);
+}
+
+/* A card's first and last children follow its inner corners; a square child with a background
+   (Notes editor toolbar) otherwise paints over the card's rounded border. */
+.card > :first-child {
+    border-top-left-radius: var(--bs-card-inner-border-radius);
+    border-top-right-radius: var(--bs-card-inner-border-radius);
+}
+.card > :last-child {
+    border-bottom-left-radius: var(--bs-card-inner-border-radius);
+    border-bottom-right-radius: var(--bs-card-inner-border-radius);
+}
+/* ...also when the child carries a 4-6px rounded-* utility (!important). */
+.card > :first-child:is(.rounded, .rounded-1, .rounded-2, .rounded-top) {
+    border-top-left-radius: var(--bs-card-inner-border-radius) !important;
+    border-top-right-radius: var(--bs-card-inner-border-radius) !important;
+}
+.card > :last-child:is(.rounded, .rounded-1, .rounded-2, .rounded-bottom) {
+    border-bottom-left-radius: var(--bs-card-inner-border-radius) !important;
+    border-bottom-right-radius: var(--bs-card-inner-border-radius) !important;
+}
+
+/* Full-screen page header bar and dotted canvas (Kanban, Workspace, Bulk URL, Diff window).
+   Header text was hard-coded white (navbar-dark, text-white), which vanished on the light theme's white bar. */
+.mq-page-header {
+    padding: 0.75rem 1.5rem;
+    color: var(--mq-text, inherit);
+    background-color: var(--mq-surface, var(--bs-body-bg));
+    border-bottom: 1px solid var(--mq-border-subtle, var(--bs-border-color));
+}
+.mq-page-header .text-white { color: var(--mq-text, #fff) !important; }
+.mq-page-dots {
+    background-image: radial-gradient(var(--mq-border-subtle, #334155) 1px, transparent 0);
+    background-size: 24px 24px;
+}
+
+/* Suggestion / autocomplete list under a search field (Dictionary, Weather city search): the same floating
+   surface, edge, radius, shadow and layer as MarquisFloat panels. !important beats the bg/shadow/border
+   utilities that scripts put on the rows. */
+.mq-suggest {
+    --bs-list-group-border-width: 0;
+    z-index: 1075;
+    padding: 0.25rem;
+    background-color: var(--mq-surface, var(--bs-body-bg));
+    border: 1px solid var(--mq-border-subtle, var(--bs-border-color)) !important;
+    border-radius: var(--mq-radius-lg, var(--bs-border-radius-lg));
+    box-shadow: var(--mq-shadow-2, var(--bs-box-shadow)) !important;
+}
+.mq-suggest > .list-group-item {
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--mq-radius-sm, var(--bs-border-radius-sm));
+    background-color: transparent !important;
+    color: var(--mq-text, inherit);
+}
+.mq-suggest > .list-group-item-action:hover,
+.mq-suggest > .list-group-item-action:focus-visible {
+    background-color: var(--mq-hover, var(--bs-tertiary-bg)) !important;
+}
+
+/* Field label: one style for every form label. */
+.form-label, .col-form-label {
+    font-size: var(--mq-fs-sm);
+    font-weight: 600;
+    color: var(--mq-text-2, inherit);
+}
+/* Overline: small uppercase heading for a group of fields or a panel block. */
+.mq-overline {
+    font-size: var(--mq-fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--mq-text-muted, inherit);
+}
+.form-text {
+    font-size: var(--mq-fs-xs);
+    color: var(--mq-text-muted, inherit);
+}
+/* Radio card (.btn-check + label.btn.btn-outline-secondary.mq-choice): neutral text,
+   accent border + tint when selected, so the description stays readable in both states. */
+.btn-check:checked + .mq-choice {
+    color: var(--mq-text);
+    background-color: var(--mq-selected);
+    border-color: var(--mq-accent);
+}
+.mq-choice-desc {
+    color: var(--mq-text-muted);
+}
+
+/* Home dashboard (Marquis.html #homeSection, filled by script.js renderHome). */
+.mq-home-hero {
+    padding: 0.75rem;
+    border: 1px solid var(--mq-border-subtle);
+    border-radius: var(--mq-radius-lg);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--mq-accent) 22%, var(--mq-sunken)) 0%, var(--mq-sunken) 70%);
+}
+.mq-home-avatar {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--mq-surface);
+    box-shadow: var(--mq-shadow-1);
+}
+.mq-home-greeting {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--mq-text);
+}
+.mq-home-date {
+    font-size: var(--mq-fs-sm);
+    color: var(--mq-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.mq-home-panel {
+    padding: 0.625rem;
+    border: 1px solid var(--mq-border-subtle);
+    border-radius: var(--mq-radius-lg);
+    background: var(--mq-sunken);
+}
+.mq-home-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+    font-size: var(--mq-fs-sm);
+    font-weight: 700;
+    color: var(--mq-text);
+}
+.mq-home-meta {
+    margin-left: auto;
+    font-size: var(--mq-fs-xs);
+    font-weight: 500;
+    color: var(--mq-text-muted);
+    white-space: nowrap;
+}
+
+/* A tool's icon tile in its own colour (--tool, from its #menuSelector option's data-color). */
+.mq-tool-icon {
+    --size: 32px;
+    width: var(--size);
+    height: var(--size);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--mq-radius-lg);
+    font-size: calc(var(--size) * 0.5);
+    /* Blended toward the text colour so dark tool colours stay legible on dark themes (and light on light). */
+    color: color-mix(in srgb, var(--tool, var(--mq-accent)) 65%, var(--mq-text));
+    background: color-mix(in srgb, var(--tool, var(--mq-accent)) 20%, var(--mq-surface));
+}
+/* App-style tile (Favorites). */
+.mq-tool-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3125rem;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem 0.25rem;
+    border: 1px solid var(--mq-border-subtle);
+    border-radius: var(--mq-radius-lg);
+    background: var(--mq-surface);
+    color: var(--mq-text);
+    font-size: var(--mq-fs-xs);
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: center;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.mq-tool-tile:hover {
+    border-color: var(--tool, var(--mq-accent));
+    transform: translateY(-1px);
+}
+.mq-tool-tile .mq-tool-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* List row (Jump back in, Most used, search results). */
+.mq-tool-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.3125rem 0.375rem;
+    border: 0;
+    border-radius: var(--mq-radius);
+    background: none;
+    color: var(--mq-text);
+    text-align: left;
+}
+.mq-tool-row:hover {
+    background: var(--mq-hover);
+}
+.mq-tool-row .mq-tool-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--mq-fs-sm);
+    font-weight: 600;
+}
+.mq-home-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px dashed var(--mq-border);
+    border-radius: var(--mq-radius-lg);
+    font-size: var(--mq-fs-sm);
+    color: var(--mq-text-muted);
+}
+/* Category card (Browse tools): overlapping icons of its first tools, name, count. */
+.mq-cat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    height: 100%;
+    padding: 0.625rem;
+    border: 1px solid var(--mq-border-subtle);
+    border-radius: var(--mq-radius-lg);
+    background: var(--mq-surface);
+    color: var(--mq-text);
+    text-align: left;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.mq-cat-card:hover {
+    border-color: var(--mq-accent);
+    transform: translateY(-1px);
+}
+.mq-cat-icons {
+    display: flex;
+    gap: 0.25rem;
+}
+.mq-cat-icons .mq-tool-icon {
+    --size: 24px;
+    border-radius: var(--mq-radius);
+}
+.mq-cat-name {
+    font-size: var(--mq-fs-sm);
+    font-weight: 700;
+    line-height: 1.2;
+}
+@media (prefers-reduced-motion: reduce) {
+    .mq-tool-tile:hover, .mq-cat-card:hover { transform: none; }
+}
+/* Header actions (favorite, full screen, options): 28px targets, 16px icons. */
+.mq-section-header .mq-icon-btn {
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    font-size: 1rem;
+}
+
+/* Icon-only toolbar control. Markup must give it aria-label (name) and title (tooltip). */
+.mq-icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0 0.375rem;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: none;
+    color: inherit;
+}
+.mq-icon-btn:hover {
+    background-color: var(--mq-hover, rgba(var(--bs-emphasis-color-rgb), 0.08));
+}
+
+/* ========================================== */
+/* FOCUS + MOTION                             */
+/* ========================================== */
+
+/* One keyboard focus ring for every control. !important beats Bootstrap's `outline: 0` on .btn/.form-control. */
+:focus-visible {
+    outline: 2px solid var(--mq-focus-ring) !important;
+    outline-offset: 2px;
+}
+/* Text-entry focus ring: shown on click and on keyboard focus (:focus, not only :focus-visible), 2px in the theme
+   focus colour, drawn inside the control so overflow-hidden cards, pills and scroll areas cannot clip it, and
+   following the control's own border-radius. */
+:is(.form-control, .form-select, textarea, .mq-select, [contenteditable]:not([contenteditable="false"])):focus {
+    outline: 2px solid var(--mq-focus-ring) !important;
+    outline-offset: -2px;
+}
+/* Composite fields get the ring once, around the whole visible field, not around the inner input:
+   an input group (icon/button + input), or a bordered/pill shell around a borderless field. The ring sits on the
+   shell's own border (offset -1px), so it follows the shell's radius and stays inside any clipping ancestor. */
+.input-group:has(> :is(.form-control, .form-select, textarea, .mq-select):focus),
+:is(.border, .rounded-pill):not(.input-group):has(> :is(.form-control, .form-select, textarea, .mq-select).border-0:focus) {
+    outline: 2px solid var(--mq-focus-ring) !important;
+    outline-offset: -1px;
+}
+.input-group > :is(.form-control, .form-select, textarea, .mq-select):focus,
+:is(.border, .rounded-pill) > :is(.form-control, .form-select, textarea, .mq-select).border-0:focus {
+    outline: none !important;
+}
+/* An input group's ring follows the group's corners (its children are rounded at the outer ends). */
+.input-group { border-radius: var(--bs-border-radius); }
+.input-group-sm { border-radius: var(--bs-border-radius-sm); }
+.input-group-lg { border-radius: var(--bs-border-radius-lg); }
+/* Bootstrap's focus glow would be a second ring. */
+.btn:focus-visible,
+.nav-link:focus-visible,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *:not(.spinner-border):not(.spinner-grow),
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* The animate.css class names still used by markup and scripts (replaces the 72 KB vendor file). */
+.animate__animated { animation-duration: var(--mq-dur-slow); animation-fill-mode: both; }
+.animate__animated.animate__fadeIn,
+.animate__animated.animate__fadeInDown { animation-duration: var(--mq-dur); }
+.animate__animated.animate__slower { animation-duration: 3s; }
+.animate__infinite { animation-iteration-count: infinite; }
+.animate__fadeIn { animation-name: mq-fade-in; }
+.animate__fadeInDown { animation-name: mq-fade-in-down; }
+.animate__pulse { animation-name: mq-pulse; animation-timing-function: ease-in-out; }
+.animate__flash { animation-name: mq-flash; }
+.animate__swing { animation-name: mq-swing; transform-origin: top center; }
+.animate__rubberBand { animation-name: mq-rubber-band; }
+@keyframes mq-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mq-fade-in-down { from { opacity: 0; transform: translateY(-0.5rem); } to { opacity: 1; transform: none; } }
+@keyframes mq-pulse { 50% { transform: scale(1.08); } }
+@keyframes mq-flash { 25%, 75% { opacity: 0; } }
+@keyframes mq-swing { 20% { transform: rotate(15deg); } 40% { transform: rotate(-10deg); } 60% { transform: rotate(5deg); } 80% { transform: rotate(-5deg); } to { transform: none; } }
+@keyframes mq-rubber-band { 30% { transform: scale(1.25, 0.75); } 40% { transform: scale(0.75, 1.25); } 60% { transform: scale(1.15, 0.85); } to { transform: none; } }

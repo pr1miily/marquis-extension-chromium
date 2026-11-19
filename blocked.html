@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>By Royal Decree: Blocked</title>
+    <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
+    <style>
+        /* 🟢 Hardcoded dark theme to match uninstall.html perfectly */
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 🟢 The Background Collage Container */
+        #background-collage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 🟢 Individual GIF styling */
+        .collage-gif {
+            position: absolute;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            image-rendering: pixelated; 
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            transition: all 4.5s ease-in-out; 
+        }
+
+        .container {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        h2 { margin-top: 0; color: #e2e8f0; font-weight: 800; }
+        p { color: #94a3b8; font-size: 15px; margin-bottom: 30px; line-height: 1.6; }
+        
+        .btn-back {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s, transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            box-sizing: border-box;
+        }
+        .btn-back:hover { 
+            background: #2563eb; 
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="background-collage" data-gif-count="27"></div>
+
+    <div class="container">
+        <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="Marquis Logo" class="logo-img">
+        
+        <h2>Ahem. Are we wandering?</h2>
+        <p>
+            I, The Marquis, have strictly forbidden you from indulging in such trivial domains while your Focus Timer is active. 
+            <br><br>
+            Kindly return your attention to the task at hand before I am forced to swat your mouse off the desk. Your productivity is my paramount concern.
+        </p>
+        
+        <a href="#" data-action="back" class="btn-back">I humbly return to work</a>
+    </div>
+
+    <script src="scripts/collage_page.js"></script>
+</body>
+</html>

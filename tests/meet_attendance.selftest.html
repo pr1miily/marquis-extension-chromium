@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Meet attendance scraper self-test</title>
+    <!-- Open this file directly (file://) in Chrome. Not part of the extension UI; not referenced by manifest.json. -->
+</head>
+<body>
+    <h4>Meet attendance scraper self-test <span id="summary">running</span></h4>
+    <ul id="results"></ul>
+
+    <!-- Fixture: Meet-like markup (class names are made up; Meet's are obfuscated). -->
+    <div id="fixture" hidden>
+        <div role="list" aria-label="Participants">
+            <div role="listitem" aria-label="Avery Jordan ADAMS"><img alt="" src="data:,"><div><span>Avery Jordan ADAMS</span></div>
+                <button aria-label="More options for Avery Jordan ADAMS"><i class="google-material-icons">more_vert</i></button></div>
+            <div role="listitem" aria-label="Blake Morgan BAKER (You)"><div><span>Blake Morgan BAKER</span><span>(You)</span><div>Meeting host</div></div></div>
+            <div role="listitem"><img alt="Casey CRUZ" src="data:,"></div>
+            <div role="listitem"><i class="material-icons-extended">person</i><span>Dana DIAZ</span><button><span>more_vert</span><span>More options for Dana DIAZ</span></button></div>
+        </div>
+        <div data-participant-id="spaces/1/devices/1"><div jsslot><span><button aria-label="More options for Emery Lee EVANS"><span class="google-symbols">more_vert</span><span>More options for Emery Lee EVANS</span></button></span><div dir="ltr">Emery Lee EVANS</div></div></div>
+        <div data-participant-id="spaces/1/devices/2"><div jsslot><span>more_vertMore options for Finley FOX</span><div dir="ltr">Finley FOX</div></div></div>
+        <div data-participant-id="spaces/1/devices/3"><div jsslot><div dir="ltr">avery jordan adams</div><span>0:42</span></div></div>
+        <div data-participant-id="spaces/1/devices/4"><div jsslot><div dir="ltr">Gray GARCIA is presenting</div><div dir="ltr">Gray GARCIA</div></div></div>
+    </div>
+
+    <script src="../scripts/meet_attendance.js"></script>
+    <script src="meet_attendance.selftest.js"></script>
+</body>
+</html>

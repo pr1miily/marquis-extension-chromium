@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>MARQUIS - KANBAN BOARD</title>
+  <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
+  <link rel="stylesheet" href="styles/bootstrap.min.css">  
+	<link rel="stylesheet" href="styles/bootstrap-icons.css">  
+  <link rel="stylesheet" href="styles/main.css">
+  <script src="scripts/theme_sync.js"></script>
+  <style>
+    body { margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+    /* Full-screen board: fills the window; columns, cards, covers, drag and search styles come from main.css. */
+    #kanbanBoardWrapper { height: 100vh; display: flex; flex-direction: column; transition: background-color 0.3s ease; }
+    #kanbanBoard { flex-grow: 1; overflow-x: auto; overflow-y: hidden; padding-bottom: 20px; }
+    .kanban-list { max-height: calc(100vh - 120px); }
+    .kanban-col { overflow-y: auto; overflow-x: hidden; flex-grow: 1; min-height: 20px; }
+</style>
+</head>
+
+<body>
+
+  <div id="kanbanBoardWrapper">
+
+    <nav class="navbar mq-page-header shadow-sm z-3 flex-shrink-0 w-100">
+      <div class="d-flex align-items-center gap-2">
+        <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="Logo" width="24" class="me-2 rounded">
+        <h6 class="mb-0 fw-bold text-white text-nowrap">MARQUIS - KANBAN BOARD</h6>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="input-group input-group-sm shadow-sm" style="width: 250px;">
+          <span class="input-group-text bg-body border-end-0 border-secondary-subtle"><i
+              class="bi bi-search text-muted"></i></span>
+          <input type="text" id="kanbanSearchInput"
+            class="form-control border-start-0 border-secondary-subtle ps-0 bg-body"
+            placeholder="Filter cards...">
+        </div>
+
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-light fw-bold shadow-sm d-flex align-items-center" type="button"
+            data-bs-toggle="dropdown">
+            <i class="bi bi-palette me-2"></i> Board
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg bg-body border-secondary-subtle mt-2">
+            <li>
+              <h6 class="dropdown-header text-body fw-bold text-uppercase" style="letter-spacing: 1px;">Background</h6>
+            </li>
+            <li><a class="dropdown-item kb-bg-btn fw-medium" href="#" data-bg="#0f172a"><span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 12px; height: 12px; background: #0f172a; border: 1px solid #fff;"></span>Slate
+                (Default)</a></li>
+            <li><a class="dropdown-item kb-bg-btn fw-medium" href="#" data-bg="#0079bf"><span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 12px; height: 12px; background: #0079bf;"></span>Ocean Blue</a></li>
+            <li><a class="dropdown-item kb-bg-btn fw-medium" href="#" data-bg="#519839"><span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 12px; height: 12px; background: #519839;"></span>Forest Green</a></li>
+            <li><a class="dropdown-item kb-bg-btn fw-medium" href="#" data-bg="#89609e"><span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 12px; height: 12px; background: #89609e;"></span>Deep Purple</a></li>
+            <li><a class="dropdown-item kb-bg-btn fw-medium" href="#" data-bg="#b04632"><span
+                  class="d-inline-block rounded-circle me-2"
+                  style="width: 12px; height: 12px; background: #b04632;"></span>Rust Red</a></li>
+            <li>
+              <hr class="dropdown-divider border-secondary-subtle">
+            </li>
+            <li><a class="dropdown-item fw-bold text-primary" href="#" data-bs-toggle="modal"
+                data-bs-target="#kanbanAutomationModal"><i class="bi bi-robot me-2"></i>Manage Automations</a></li>
+          </ul>
+        </div>
+
+        <div class="vr bg-white opacity-25"></div> 
+        <button id="closeFullscreenBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm btn-lift-hover">Close Studio</button>
+      </div>
+    </nav>
+
+    <div class="p-2 h-100 w-100 d-flex flex-column">
+      <div class="d-flex gap-2 align-items-start h-100 custom-scrollbar pb-2" id="kanbanBoard">
+
+        <div class="kanban-add-list-wrapper flex-shrink-0" style="width: 280px;" id="addListWrapper">
+          <button id="btnShowAddList"
+            class="btn bg-body-tertiary bg-opacity-75 border-0 text-start fw-bold w-100 p-2 shadow-sm rounded text-body btn-lift-hover">
+            <i class="bi bi-plus-lg me-1"></i> Add another list
+          </button>
+          <div id="addListForm" class="d-none bg-body p-2 rounded shadow-lg border border-secondary-subtle">
+            <input type="text" id="newListTitleInput" class="form-control form-control-sm mb-2 fw-bold text-body"
+              placeholder="Enter list title...">
+            <div class="d-flex gap-2 align-items-center">
+              <button id="btnConfirmAddList" class="btn btn-primary btn-sm fw-bold px-3">Add list</button>
+              <button id="btnCancelAddList" class="btn btn-sm btn-link text-muted p-0 ms-1"><i
+                  class="bi bi-x-lg fs-5"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kanbanAddCardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body">
+        <div class="modal-header py-2 bg-body-tertiary border-bottom border-secondary-subtle">
+          <h6 class="modal-title fw-bold small text-body d-flex align-items-center mb-0">
+            <i class="bi bi-card-heading fs-6 me-2 text-primary"></i> Add Card
+          </h6>
+          <button type="button" class="btn-close small" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="kanbanTargetCol">
+          <div class="mb-2">
+            <input type="text" id="kanbanNewCardTitle"
+              class="form-control fw-bold shadow-sm bg-body text-body border-secondary-subtle"
+              placeholder="Enter a title for this card..." required>
+          </div>
+          <button id="btnSaveKanbanCard" class="btn btn-primary w-100 fw-bold rounded shadow-sm">
+            Add Card
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kanbanEditCardModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div
+        class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body-tertiary position-relative">
+
+        <button type="button" class="btn-close position-absolute shadow-none" id="editModalCloseBtn"
+          data-bs-dismiss="modal" style="top: 16px; right: 20px; z-index: 1050;"></button>
+
+        <div id="editModalCover" class="w-100 d-none"
+          style="height: 96px; background-color: #0079bf; transition: background-color 0.2s;"></div>
+
+        <div class="modal-body custom-scrollbar"
+          style="max-height: 85vh; overflow-y: auto; overflow-x: hidden;">
+
+          <div class="row g-2">
+            <div class="col-md-9">
+
+              <div class="d-flex align-items-start mb-3">
+                <div style="width: 36px;" class="flex-shrink-0 text-center me-2 mt-1">
+                  <i class="bi bi-card-heading fs-5 text-secondary"></i>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <input type="text" id="editKanbanCardTitle"
+                    class="form-control fw-bold border-0 shadow-none text-body px-2 py-1 m-0 rounded-2"
+                    style="font-size: 1.25rem;">
+                  <p class="small text-muted px-2 mb-0 mt-1">in list <span
+                      class="text-decoration-underline fw-bold text-body" id="editKanbanListInfo">To Do</span></p>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-start mb-3">
+                <div style="width: 36px;" class="flex-shrink-0 me-2"></div>
+                <div class="flex-grow-1 min-w-0 d-flex flex-wrap gap-2" id="editModalMetaData">
+
+                  <div id="editModalLabelsWrapper" class="d-none">
+                    <h6 class="mq-overline mb-2 px-2"
+                     >Labels</h6>
+                    <div class="d-flex flex-wrap gap-1 px-2" id="editModalLabelsDisplay"></div>
+                  </div>
+
+                  <div id="editModalDateWrapper">
+                    <h6 class="mq-overline mb-2 px-2"
+                     >Due Date & Time</h6>
+                    <div class="d-flex align-items-center gap-2 bg-body px-2 py-1 ms-2 rounded-3 shadow-sm border border-secondary-subtle" style="min-height: 32px;">
+                      <input type="date" id="editKanbanCardDate"
+                        class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 110px;">
+                      <div class="vr bg-secondary opacity-25"></div>
+                      <input type="time" id="editKanbanCardTime" 
+                        class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 90px;">
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div class="d-flex align-items-start mb-3">
+                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
+                  <i class="bi bi-justify-left fs-5 text-secondary"></i>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="d-flex align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-body fs-6 px-2">Description</h6>
+                  </div>
+                  <textarea id="editKanbanCardDesc"
+                    class="form-control shadow-sm border-secondary-subtle bg-body custom-scrollbar text-body p-2 rounded-3"
+                    rows="4" placeholder="Add a more detailed description..."></textarea>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-start mb-2">
+                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
+                  <i class="bi bi-check2-square fs-5 text-secondary"></i>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                    <h6 class="fw-bold mb-0 text-body fs-6">Checklist</h6>
+                    <span class="badge bg-secondary rounded-pill px-3 py-2" id="editKanbanChecklistProgress">0%</span>
+                  </div>
+
+                  <div class="progress mb-3 bg-secondary bg-opacity-25 rounded-pill" style="height: 8px;">
+                    <div id="editKanbanProgressBar" class="progress-bar bg-primary rounded-pill" role="progressbar"
+                      style="width: 0%; transition: width 0.3s;"></div>
+                  </div>
+
+                  <ul class="list-group list-group-flush small mb-2 bg-transparent" id="editKanbanChecklistArea"></ul>
+
+                  <div
+                    class="input-group input-group-sm shadow-sm rounded-3 overflow-hidden border border-secondary-subtle mt-2">
+                    <input type="text" id="kanbanChecklistInput"
+                      class="form-control bg-body text-body border-0 px-3 shadow-none"
+                      placeholder="Add an item...">
+                    <button class="btn btn-secondary fw-bold px-3 border-0" id="kanbanAddChecklistBtn">Add</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <h6 class="mq-overline mb-2 mt-2 mt-md-0"
+               >Add to card</h6>
+
+              <div class="d-grid gap-2 mb-3">
+                <div class="dropdown">
+                  <button
+                    class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3"
+                    data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                    <i class="bi bi-tag me-2"></i> Labels
+                  </button>
+                  <div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 260px;">
+                    <h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Select Labels</h6>
+
+                    <div id="kanbanLabelSelector" class="d-flex flex-column gap-2 mb-2">
+                      <div class="form-check d-flex align-items-center p-0 m-0">
+                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
+                          value="bg-danger" data-text="Urgent / Bug" id="lbl-danger">
+                        <label
+                          class="form-check-label w-100 rounded px-2 py-1 bg-danger text-white fw-bold small shadow-sm"
+                          for="lbl-danger">Urgent / Bug</label>
+                      </div>
+                      <div class="form-check d-flex align-items-center p-0 m-0">
+                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
+                          value="bg-warning" data-text="Review" id="lbl-warning">
+                        <label
+                          class="form-check-label w-100 rounded px-2 py-1 bg-warning text-dark fw-bold small shadow-sm"
+                          for="lbl-warning">Review</label>
+                      </div>
+                      <div class="form-check d-flex align-items-center p-0 m-0">
+                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
+                          value="bg-success" data-text="Approved" id="lbl-success">
+                        <label
+                          class="form-check-label w-100 rounded px-2 py-1 bg-success text-white fw-bold small shadow-sm"
+                          for="lbl-success">Approved</label>
+                      </div>
+                      <div class="form-check d-flex align-items-center p-0 m-0">
+                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
+                          value="bg-info" data-text="Design" id="lbl-info">
+                        <label
+                          class="form-check-label w-100 rounded px-2 py-1 bg-info text-dark fw-bold small shadow-sm"
+                          for="lbl-info">Design</label>
+                      </div>
+                      <div class="form-check d-flex align-items-center p-0 m-0">
+                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
+                          value="bg-primary" data-text="Dev / Backend" id="lbl-primary">
+                        <label
+                          class="form-check-label w-100 rounded px-2 py-1 bg-primary text-white fw-bold small shadow-sm"
+                          for="lbl-primary">Dev / Backend</label>
+                      </div>
+                    </div>
+
+                    <div class="border-top border-secondary-subtle pt-2">
+                      <h6 class="small fw-bold text-secondary mb-2" style="font-size: 0.7rem;">CREATE NEW LABEL</h6>
+                      <input type="text" id="customLabelInput"
+                        class="form-control form-control-sm bg-body-tertiary border-secondary-subtle text-body mb-2"
+                        placeholder="Label name...">
+                      <div class="d-flex gap-1 mb-2">
+                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
+                          data-color="#9333ea" style="height:20px; background-color:#9333ea;"></button>
+                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
+                          data-color="#0ea5e9" style="height:20px; background-color:#0ea5e9;"></button>
+                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
+                          data-color="#14b8a6" style="height:20px; background-color:#14b8a6;"></button>
+                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
+                          data-color="#f59e0b" style="height:20px; background-color:#f59e0b;"></button>
+                      </div>
+                      <button class="btn btn-sm btn-secondary w-100 fw-bold" id="btnAddCustomLabel">Create</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dropdown">
+                  <button
+                    class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3"
+                    data-bs-toggle="dropdown">
+                    <i class="bi bi-image me-2"></i> Cover
+                  </button>
+                  <div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 250px;">
+                    <h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Cover Color</h6>
+                    <div class="d-flex flex-wrap gap-2" id="kanbanCoverSelector">
+                      <button
+                        class="btn btn-outline-secondary p-0 kb-cover-btn d-flex align-items-center justify-content-center"
+                        data-color="none" style="width: 45px; height: 32px;"><i class="bi bi-slash-lg"></i></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#0079bf"
+                        style="width: 45px; height: 32px; background-color: #0079bf;"></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#d29034"
+                        style="width: 45px; height: 32px; background-color: #d29034;"></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#519839"
+                        style="width: 45px; height: 32px; background-color: #519839;"></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#b04632"
+                        style="width: 45px; height: 32px; background-color: #b04632;"></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#89609e"
+                        style="width: 45px; height: 32px; background-color: #89609e;"></button>
+                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#cd5a91"
+                        style="width: 45px; height: 32px; background-color: #cd5a91;"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h6 class="mq-overline mb-2 mt-3"
+               >Actions</h6>
+              <div class="d-grid gap-2">
+                <button type="button" id="btnUpdateKanbanCard"
+                  class="btn btn-primary fw-bold text-start shadow-sm rounded-3"><i class="bi bi-save2 me-2"></i>
+                  Save & Close</button>
+                <button type="button" id="btnDeleteKanbanCard"
+                  class="btn btn-danger text-start fw-bold shadow-sm rounded-3"><i class="bi bi-trash3 me-2"></i>
+                  Delete</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kanbanAutomationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body">
+        <div class="modal-header py-2 bg-body-tertiary border-bottom border-secondary-subtle">
+          <h6 class="modal-title fw-bold text-primary d-flex align-items-center mb-0">
+            <i class="bi bi-robot fs-5 me-2"></i> Board Automations
+          </h6>
+          <button type="button" class="btn-close small" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <h6 class="mq-overline mb-2">Active Rules</h6>
+          <div class="d-flex flex-column gap-2 mb-3" id="automationRulesList"></div>
+
+          <h6 class="mq-overline mb-2 border-top pt-3">
+            Create New Rule</h6>
+          <div class="bg-body-tertiary p-2 rounded-3 border border-secondary-subtle shadow-sm">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm">WHEN</span>
+              <select id="ruleTrigger"
+                class="form-select form-select-sm w-auto fw-bold shadow-sm rounded-pill border-secondary-subtle bg-body text-body">
+                <option value="moved_to">A card is moved to list...</option>
+                <option value="marked_complete">A card is marked complete</option>
+              </select>
+              <select id="ruleTriggerCol"
+                class="form-select form-select-sm w-auto fw-bold shadow-sm rounded-pill border-secondary-subtle bg-body text-body"></select>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="badge bg-success fs-6 px-3 py-2 shadow-sm">THEN</span>
+              <select id="ruleAction"
+                class="form-select form-select-sm w-auto fw-bold shadow-sm rounded-pill border-secondary-subtle bg-body text-body">
+                <option value="add_label">Add a label...</option>
+                <option value="move_to">Move to list...</option>
+                <option value="mark_complete">Mark as complete</option>
+              </select>
+              <input type="text" id="ruleActionLabel"
+                class="form-control form-control-sm w-auto fw-bold shadow-sm rounded-pill border-secondary-subtle bg-body text-body"
+                placeholder="e.g., Verified">
+              <select id="ruleActionCol"
+                class="form-select form-select-sm w-auto fw-bold shadow-sm rounded-pill border-secondary-subtle bg-body text-body d-none"></select>
+            </div>
+            <div class="text-end mt-2">
+              <button class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm" id="btnAddAutomationRule">
+                <i class="bi bi-plus-lg me-1"></i> Add Rule
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kanbanGenericConfirmModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body">
+        <div class="modal-body text-center">
+          <i class="bi bi-exclamation-circle text-danger fs-2 mb-2 d-block"></i>
+          <h6 class="fw-bold mb-2 text-body" id="kgcTitle">Are you sure?</h6>
+          <p class="small text-muted mb-3" id="kgcMessage">This action cannot be undone.</p>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary w-50 fw-bold rounded-pill"
+              data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="kgcConfirmBtn"
+              class="btn btn-sm btn-danger w-50 fw-bold rounded-pill shadow-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kanbanRenameListModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body">
+        <div class="modal-header py-2 bg-body-tertiary border-bottom border-secondary-subtle">
+          <h6 class="modal-title fw-bold small text-body d-flex align-items-center mb-0">
+            <i class="bi bi-input-cursor-text fs-6 me-2 text-primary"></i> Rename List
+          </h6>
+          <button type="button" class="btn-close small" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="renameListId">
+          <div class="mb-2">
+            <input type="text" id="renameListTitleInput"
+              class="form-control fw-bold shadow-sm bg-body text-body border-secondary-subtle" required>
+          </div>
+          <button id="btnSaveRenameList" class="btn btn-primary w-100 fw-bold rounded shadow-sm">
+            Save Name
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="scripts/bootstrap.bundle.min.js"></script>
+  <script src="scripts/sortable.min.js"></script>
+  <script src="scripts/safe_html.js"></script>
+  <script src="scripts/mq_float.js" data-enhance></script>
+  <script src="scripts/kanban_store.js"></script>
+  <script src="scripts/kanban.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>MARQUIS - DEVICE SIMULATOR</title>
+    <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
+    <link rel="stylesheet" href="styles/bootstrap.min.css">  
+	<link rel="stylesheet" href="styles/bootstrap-icons.css">  
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- Follows the Marquis theme (the app chrome around the device; device frames keep their own colours). -->
+    <script src="scripts/theme_sync.js"></script>
+    <style>
+        body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; background-color: var(--mq-sunken); color: var(--mq-text); overflow: hidden; }
+        .sim-header { background-color: var(--mq-surface); padding: 12px 24px; border-bottom: 1px solid var(--mq-border-subtle); display: flex; flex-wrap: wrap; gap: 8px 15px; align-items: center; z-index: 10; box-shadow: var(--mq-shadow-1); }
+        .sim-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 40px; background-image: radial-gradient(var(--mq-border-subtle) 1px, transparent 0); background-size: 24px 24px; }
+        
+        #scaleContainer { transform-origin: center center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; }
+        
+        .device-frame { position: relative; background: #000; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        iframe { border: none; background: #fff; transition: width 0.3s, height 0.3s; display: block; position: relative; z-index: 1; }
+
+        .screen-wrapper { position: relative; display: flex; flex-direction: column; background: #fff; overflow: hidden; z-index: 1; width: 100%; height: 100%; }
+        .device-frame.phone .screen-wrapper { border-radius: 40px; }
+        .device-frame.tablet .screen-wrapper { border-radius: 12px; }
+        .device-frame.desktop .screen-wrapper { border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+        .device-frame.watch .screen-wrapper { border-radius: 30px; }
+
+        /* --- OS BROWSER UI BLOCKS --- */
+        .browser-chrome { display: none; background: #f1f3f4; align-items: flex-end; justify-content: center; border-bottom: 1px solid #dadce0; width: 100%; position: relative; }
+        .browser-bottom-bar { display: none; background: #f1f3f4; align-items: center; justify-content: space-around; width: 100%; z-index: 10; }
+        
+        /* General URL Bar Styling */
+        .url-bar-pill { background: #e8eaed; border-radius: 12px; padding: 6px 16px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #202124; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+        /* 1. iOS Safari UI */
+        .device-frame.os-ios.phone .ios-chrome { display: flex; padding-top: 48px; padding-bottom: 10px; }
+        .device-frame.os-ios.tablet .ios-chrome { display: flex; padding-top: 15px; padding-bottom: 10px; }
+        .device-frame.os-ios.phone .ios-bottom { display: flex; height: 70px; border-top: 1px solid #dadce0; align-items: flex-start; padding-top: 16px; color: #1a73e8; font-size: 1.3rem; }
+        .device-frame.os-ios.tablet .ios-bottom { display: none; } /* Tablets rarely show thick bottom bars */
+        
+        /* 2. Android Chrome UI */
+        .device-frame.os-android.phone .android-chrome { display: flex; padding-top: 36px; padding-bottom: 8px; }
+        .device-frame.os-android.tablet .android-chrome { display: flex; padding-top: 15px; padding-bottom: 8px; }
+        .device-frame.os-android.phone .android-bottom { display: flex; height: 45px; background: #000; color: #fff; font-size: 1.2rem; }
+        
+        /* 3. Mac Desktop UI */
+        .device-frame.os-mac.desktop .mac-chrome { display: flex; background: #e2e2e2; height: 36px; justify-content: center; padding-bottom: 6px; }
+        .device-frame.os-mac.desktop .mac-chrome::before { content: ''; position: absolute; left: 16px; top: 12px; width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27c93f; }
+        
+        /* 4. Windows Desktop UI */
+        .device-frame.os-win.desktop .win-chrome { display: flex; background: #dee2e6; height: 40px; justify-content: space-between; padding: 0 10px; align-items: flex-end; }
+        .device-frame.os-win.desktop .win-bottom { display: flex; height: 44px; background: #111827; border-top: 1px solid #334155; align-items: center; justify-content: center; gap: 16px; }
+		.win-tab { background: #fff; border-radius: 8px 8px 0 0; padding: 6px 15px; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 -1px 3px rgba(0,0,0,0.05); color: #212529; }
+        
+
+        /* --- CHASSIS STRUCTURE --- */
+        .device-frame.phone { padding: 16px; border-radius: 56px; box-shadow: inset 0 0 0 2px #000, 0 0 0 4px #8ba0b5, 0 0 0 5px #475569, 0 30px 60px -15px rgba(0,0,0,0.8); }
+        .device-frame.phone .hw-btn { position: absolute; background: #64748b; border-radius: 4px; z-index: 0; }
+        .device-frame.phone .hw-btn.mute { width: 3px; height: 25px; left: -6px; top: 110px; }
+        .device-frame.phone .hw-btn.vol-up { width: 3px; height: 55px; left: -6px; top: 160px; }
+        .device-frame.phone .hw-btn.vol-down { width: 3px; height: 55px; left: -6px; top: 230px; }
+        .device-frame.phone .hw-btn.power { width: 3px; height: 80px; right: -6px; top: 190px; }
+        
+        /* Android Hardware Tweaks (Move buttons to the right side mostly) */
+        .device-frame.os-android.phone .hw-btn.mute { display: none; }
+        .device-frame.os-android.phone .hw-btn.vol-up { right: -6px; left: auto; top: 110px; }
+        .device-frame.os-android.phone .hw-btn.vol-down { right: -6px; left: auto; top: 170px; }
+        .device-frame.os-android.phone .hw-btn.power { right: -6px; left: auto; top: 250px; height: 45px; }
+
+        .device-frame.phone .hw-status-bar { position: absolute; top: 16px; left: 16px; right: 16px; height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; z-index: 5; pointer-events: none; color: #000; font-size: 13px; font-weight: 700; font-family: -apple-system, sans-serif; }
+        .device-frame.phone .hw-home-indicator { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); width: 130px; height: 5px; background: #000; border-radius: 10px; z-index: 10; pointer-events: none; }
+
+        /* NOTCH DESIGNS */
+        .device-frame.phone .hw-notch { position: absolute; background: #000; z-index: 10; display: flex; align-items: center; justify-content: space-between; }
+        .device-frame.phone.notch-dynamic .hw-notch { top: 26px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; border-radius: 20px; padding: 0 10px; }
+        .device-frame.phone.notch-dynamic .hw-notch::before { content: ''; width: 14px; height: 14px; background: #0a0a0a; border-radius: 50%; border: 2px solid #1a1a1a; box-shadow: inset 2px -2px 4px rgba(255,255,255,0.1); }
+        .device-frame.phone.notch-dynamic .hw-notch::after { content: ''; width: 10px; height: 10px; background: #0a0a0a; border-radius: 50%; }
+        .device-frame.phone.notch-standard .hw-notch { top: 16px; left: 50%; transform: translateX(-50%); width: 160px; height: 30px; border-radius: 0 0 24px 24px; padding: 0 40px; }
+        .device-frame.phone.notch-standard .hw-notch::before { content: ''; width: 12px; height: 12px; background: #111; border-radius: 50%; }
+        .device-frame.phone.notch-standard .hw-notch::after { content: ''; width: 40px; height: 6px; background: #111; border-radius: 10px; }
+        .device-frame.phone.notch-punch .hw-notch { top: 25px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%; background: #0a0a0a; border: 2px solid #1a1a1a; box-shadow: inset 2px -2px 4px rgba(255,255,255,0.1); }
+        .device-frame.phone.notch-none .hw-notch { display: none; }
+        .device-frame.phone.notch-none .hw-home-indicator { display: none; }
+
+		/* CLASSIC IPHONE BEZELS (iPhone 5, SE, 6, 7, 8) */
+        .device-frame.phone.notch-classic { 
+            padding: 70px 16px !important; /* Thick top and bottom bezels */
+            border-radius: 40px !important; 
+        }
+		
+		.device-frame.phone.notch-classic .screen-wrapper { 
+            border-radius: 2px !important; 
+        }
+		
+        /* Top speaker grill and camera */
+        .device-frame.phone.notch-classic .hw-notch { 
+            display: flex; 
+            top: 25px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 50px; 
+            height: 6px; 
+            background: #222; 
+            border-radius: 10px; 
+            padding: 0; 
+        }
+        .device-frame.phone.notch-classic .hw-notch::before { 
+            content: ''; 
+            position: absolute; 
+            left: -24px; 
+            top: -2px;
+            width: 10px; 
+            height: 10px; 
+            background: #111; 
+            border-radius: 50%; 
+        }
+        .device-frame.phone.notch-classic .hw-notch::after { display: none; }
+        /* Classic Physical Home Button */
+        .device-frame.phone.notch-classic::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: 12px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 44px; 
+            height: 44px; 
+            border: 2px solid #475569; 
+            border-radius: 50%; 
+            background: #000; 
+        }
+		/* Hide modern home indicator */
+        .device-frame.phone.notch-classic .hw-home-indicator { display: none; }
+        
+        /* 🟢 FIX 1: Align status bar perfectly to the edge of the 70px bezel */
+        .device-frame.phone.notch-classic .hw-status-bar { top: 70px !important; height: 24px !important; }
+        
+        /* 🟢 FIX 2: Shrink the Safari UI bars so they don't have massive white gaps */
+        .device-frame.phone.notch-classic.os-ios .ios-chrome { padding-top: 24px !important; }
+        .device-frame.phone.notch-classic.os-ios .ios-bottom { height: 48px !important; padding-top: 0 !important; align-items: center !important; }	
+
+		/* 💧 DEWDROP / WATERDROP NOTCH (Huawei, OnePlus, older Androids) */
+        .device-frame.phone.notch-dewdrop .hw-notch { 
+            position: absolute; top: 16px; left: 50%; transform: translateX(-50%); 
+            width: 24px; height: 24px; background: #000; 
+            border-radius: 0 0 12px 12px; z-index: 10; display: flex; align-items: center; justify-content: center;
+        }
+        .device-frame.phone.notch-dewdrop .hw-notch::before { 
+            content: ''; width: 8px; height: 8px; background: #111; border-radius: 50%; box-shadow: inset 1px -1px 2px rgba(255,255,255,0.1);
+        }
+
+		/* 3. Mac Desktop UI */
+        .device-frame.os-mac.desktop .mac-chrome { 
+            display: flex; background: #e2e2e2; height: 36px; justify-content: center; align-items: center; position: relative; 
+        }
+        .device-frame.os-mac.desktop .mac-chrome::before { 
+            content: ''; position: absolute; left: 16px; top: 12px; width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27c93f; 
+        }
+        
+        /* 🟢 NEW: Authentic macOS Menu Bar for Notched Macs */
+        .device-frame.os-mac.desktop.notch-mac .mac-chrome { 
+            height: 62px; /* 26px macOS Menu Bar + 36px Safari */
+            padding-top: 26px; /* Push Safari UI safely down below the notch */
+            /* Draw the dark Menu Bar background and the gray Safari background */
+            background: linear-gradient(to bottom, #0f172a 0px, #0f172a 26px, #e2e2e2 26px, #e2e2e2 100%); 
+        }
+        
+        /* Drop the Red/Yellow/Green window dots down into the Safari header */
+        .device-frame.os-mac.desktop.notch-mac .mac-chrome::before { 
+            top: 38px; /* 26px (menu bar) + 12px (original padding) */
+        }
+        
+        /* Simulate the Apple Menu text inside the Menu Bar */
+        .device-frame.os-mac.desktop.notch-mac .mac-chrome::after {
+            content: ' \00a0\00a0 Safari \00a0\00a0 File \00a0\00a0 Edit \00a0\00a0 View \00a0\00a0 Window';
+            position: absolute;
+            top: 0;
+            left: 16px;
+            height: 26px;
+            line-height: 26px;
+            color: #f8fafc;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            pointer-events: none;
+        }
+
+        /* TABLET & DESKTOP CHASSIS */
+        .device-frame.tablet { padding: 30px; border-radius: 40px; box-shadow: inset 0 0 0 2px #000, 0 0 0 4px #475569, 0 0 0 5px #334155, 0 30px 60px -15px rgba(0,0,0,0.8); }
+        .device-frame.tablet .hw-notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; background: #111; border-radius: 50%; z-index: 10; }
+        .device-frame.desktop { 
+            padding: 12px 12px 6px 12px; /* thin bottom bezel — laptop lids have almost no chin */
+            border-radius: 12px 12px 3px 3px; 
+            background: #1e293b; 
+            box-shadow: inset 0 0 0 1px #334155, 0 0 0 2px #0f172a, 0 30px 60px -15px rgba(0,0,0,0.8); 
+        }
+        /* Webcam dot — vertically centered in the 12px top bezel.
+           Styled as a lens with a subtle ring, not a phone punch-hole. */
+        .device-frame.desktop .hw-notch { 
+            position: absolute; 
+            top: 3px; /* (12px bezel − 6px dot) / 2 = 3px centers it */
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 6px; height: 6px; 
+            background: #111; 
+            border-radius: 50%; 
+            z-index: 10;
+            box-shadow: 0 0 0 1.5px #0a0a0a, 0 0 0 3.5px rgba(50,65,85,0.45);
+        }
+
+        /* MacBook Pro notch — a black rectangle that cuts INTO the screen,
+           not a dot in the bezel. Matches the real 2021+ MBP design. */
+        .device-frame.desktop.notch-mac .hw-notch {
+            top: 12px; /* flush with the screen edge (= bezel padding-top) */
+            width: 180px; 
+            height: 28px;
+            background: #000;
+            border-radius: 0 0 14px 14px;
+            box-shadow: none;
+        }
+        /* Camera dot inside the MBP notch */
+        .device-frame.desktop.notch-mac .hw-notch::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px; height: 6px;
+            background: #111;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1.5px #0a0a0a, 0 0 0 3px rgba(50,65,85,0.3);
+        }
+
+        /* LAPTOP BASE — replaces the tapered monitor pedestal */
+        .device-frame.desktop .hw-stand { 
+            position: absolute; 
+            top: 100%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            /* Base is wider than the lid — mimics how a laptop body extends past the screen */
+            width: calc(100% + 36px); 
+            height: 26px; 
+            background: linear-gradient(180deg, #263347 0%, #1c2b3d 50%, #141e2d 100%);
+            border-radius: 0 0 8px 8px;
+            z-index: -1;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.55), inset 0 1px 0 rgba(100,116,139,0.25);
+        }
+        /* Trackpad hint — centered on the palm rest */
+        .device-frame.desktop .hw-stand::before { 
+            content: ''; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 52px; 
+            height: 10px; 
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(100,116,139,0.22); 
+            border-radius: 3px; 
+        }
+        /* Bottom rubber-foot edge */
+        .device-frame.desktop .hw-stand::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: 0; left: 0; right: 0; 
+            height: 3px; 
+            background: linear-gradient(to right, #0a1120, #1a2840, #0a1120);
+            border-radius: 0 0 8px 8px;
+        }
+
+		/* SMARTWATCH CHASSIS */
+        .device-frame.watch { padding: 12px; border-radius: 40px; box-shadow: inset 0 0 0 2px #000, 0 0 0 4px #475569, 0 0 0 5px #334155, 0 30px 60px -15px rgba(0,0,0,0.8); }
+        .device-frame.watch .screen-wrapper { border-radius: 28px; }
+        
+        /* Apple Watch Straps */
+        .device-frame.watch::before {
+            content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+            width: 110px; height: 40px; background: linear-gradient(to bottom, #1e293b, #334155);
+            border-radius: 12px 12px 0 0; z-index: -1;
+        }
+        .device-frame.watch::after {
+            content: ''; position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%);
+            width: 110px; height: 40px; background: linear-gradient(to top, #1e293b, #334155);
+            border-radius: 0 0 12px 12px; z-index: -1;
+        }
+
+        /* Apple Watch Crown and Side Button */
+        .device-frame.watch .hw-btn { position: absolute; background: #64748b; border-radius: 4px; z-index: 0; }
+        .device-frame.watch .hw-btn.power { width: 5px; height: 35px; right: -9px; top: 40px; border-radius: 4px; background: #94a3b8; box-shadow: inset -1px 0 2px rgba(0,0,0,0.5); } 
+        .device-frame.watch .hw-btn.mute { width: 3px; height: 45px; right: -7px; top: 90px; border-radius: 4px; }
+
+        /* VISIBILITY LOGIC */
+        .device-frame:not(.phone):not(.watch) .hw-btn { display: none; }
+        .device-frame:not(.phone) .hw-status-bar { display: none; }
+        .device-frame:not(.phone):not(.tablet) .hw-home-indicator { display: none; }
+        .device-frame:not(.desktop) .hw-stand { display: none; }
+        .device-frame.watch .hw-notch { display: none; }
+    </style>
+</head>
+<body>
+    <div class="sim-header">
+        <div class="d-flex align-items-center gap-2">
+            <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" width="24" class="me-2 rounded">
+            <h6 class="mb-0 fw-bold text-nowrap d-none d-lg-block">MARQUIS - DEVICE SIMULATOR</h6>
+        </div>
+        
+        <div class="input-group input-group-sm" style="max-width: 400px; min-width: 200px;">
+            <span class="input-group-text border-secondary text-secondary"><i class="bi bi-link-45deg"></i></span>
+            <input type="text" id="simUrl" class="form-control border-secondary shadow-none" placeholder="https://...">
+            <button class="btn btn-primary fw-bold px-3" id="simGoBtn">GO</button>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 border-start border-secondary ps-3 ms-2 flex-shrink-0">
+            <select id="simDeviceSelect" aria-label="Device" class="form-select form-select-sm border-secondary shadow-none fw-bold" style="width: 300px; cursor: pointer;">
+                <optgroup label="Apple Phones (iOS)">
+					<option value="320,568,phone,notch-classic,ios">iPhone 5 (320x568)</option>
+					<option value="375,667,phone,notch-classic,ios">iPhone SE 2016 (375x667)</option>
+                    <option value="375,812,phone,notch-standard,ios">iPhone X / 11 Pro (375x812)</option>
+                    <option value="414,896,phone,notch-standard,ios">iPhone XR / 11 (414x896)</option>
+                    <option value="414,896,phone,notch-standard,ios">iPhone 11 PRO MAX (414x896)</option>
+                    <option value="375,812,phone,notch-standard,ios">iPhone 12/13 Mini (375x812)</option>
+                    <option value="390,844,phone,notch-standard,ios">iPhone 12/13/14 (390x844)</option>
+                    <option value="428,926,phone,notch-standard,ios">iPhone 12/13/14 Pro Max (428x926)</option>
+                    <option value="393,852,phone,notch-dynamic,ios" selected>iPhone 14 Pro / 15 (393x852)</option>
+                    <option value="430,932,phone,notch-dynamic,ios">iPhone 15 Pro Max (430x932)</option>
+                </optgroup>
+                <optgroup label="Android Phones">
+                    <option value="360,800,phone,notch-punch,android">Samsung Galaxy S20/S24 (360x800)</option>
+                    <option value="384,854,phone,notch-punch,android">Galaxy S21/S24 Ultra (384x854)</option>
+                    <option value="360,854,phone,notch-punch,android">Galaxy Z Flip3 (360x854)</option>
+                    <option value="393,851,phone,notch-punch,android">Google Pixel 5 (393x851)</option>
+                    <option value="412,892,phone,notch-punch,android">Google Pixel 8 Pro (412x892)</option>
+                    <option value="393,850,phone,notch-punch,android">Xiaomi 12 / Mi 11i (393x850)</option>
+                    <option value="360,780,phone,notch-dewdrop,android">Huawei P30 Pro (360x780)</option>
+                </optgroup>
+                <optgroup label="Tablets">
+                    <option value="768,1024,tablet,notch-none,ios">iPad Mini (768x1024)</option>
+                    <option value="820,1180,tablet,notch-none,ios">iPad Air 4 (820x1180)</option>
+                    <option value="1024,1366,tablet,notch-none,ios">iPad PRO 11 (1024x1366)</option>
+                    <option value="800,1280,tablet,notch-none,android">Galaxy Tab S7/S9 (800x1280)</option>
+                    <option value="884,1116,tablet,notch-none,android">Galaxy Fold2 (884x1116)</option>
+                </optgroup>
+                <optgroup label="Desktops & Specials">
+                    <option value="1280,800,desktop,notch-none,mac">Macbook Air (1280x800)</option>
+                    <option value="1536,960,desktop,notch-mac,mac">Macbook PRO 16 (1536x960)</option>
+                    <option value="1366,768,desktop,notch-none,win">Windows Laptop (1366x768)</option>
+                    <option value="1920,1080,desktop,notch-none,win">Desktop FHD (1920x1080)</option>
+                    <option value="162,197,watch,notch-none,ios">Apple Watch (162x197)</option>
+                </optgroup>
+            </select>
+            
+			<button class="btn btn-sm btn-outline-secondary" id="simRotate" title="Rotate Display"><i class="bi bi-arrow-repeat"></i></button>
+			<button class="btn btn-sm btn-outline-secondary" id="simNativeBtn" title="Launch as native OS window"><i class="bi bi-box-arrow-up-right"></i></button>
+		</div>
+
+		<div class="ms-auto d-flex align-items-center gap-2">
+            
+            <div class="d-flex align-items-center gap-2 border-end border-secondary pe-3 me-1">
+                <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm d-none align-items-center justify-content-center text-nowrap" id="simDownloadPdfBtn" title="Download Multi-Page PDF" style="height: 32px; transition: all 0.2s;">
+                    <i class="bi bi-download me-1"></i> PDF (<span id="pdfPageCount">0</span>)
+                </button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm d-flex align-items-center justify-content-center text-nowrap" id="simDetectBtn" title="Detect Layout Issues" style="height: 32px; transition: all 0.2s;">
+                    <i class="bi bi-bug me-1"></i> Detect
+                </button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm d-flex align-items-center justify-content-center text-nowrap" id="simReportBtn" title="Capture & Annotate" style="height: 32px; transition: all 0.2s;">
+                    <i class="bi bi-pencil-square me-1"></i> Annotate
+                </button>
+
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm d-flex align-items-center justify-content-center text-nowrap" type="button" data-bs-toggle="dropdown" style="height: 32px; transition: all 0.2s;">
+                        <i class="bi bi-tools me-1"></i> Other
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg bg-dark border-secondary-subtle mt-2" style="width: 230px;">
+                        <li><h6 class="dropdown-header text-secondary text-uppercase" style="letter-spacing: 1px;">Visual Testing</h6></li>
+                        <li><a class="dropdown-item sim-tab-btn text-light fw-bold py-2 d-flex align-items-center" href="#" data-tab="diff"><i class="bi bi-intersect me-2 text-warning fs-5"></i> Visual Diff</a></li>
+                        <li><a class="dropdown-item sim-tab-btn text-light fw-bold py-2 d-flex align-items-center" href="#" data-tab="ghost"><i class="bi bi-layers me-2 text-primary fs-5"></i> Ghost Overlay</a></li>
+                        <li><a class="dropdown-item sim-tab-btn text-light fw-bold py-2 d-flex align-items-center" href="#" data-tab="grid"><i class="bi bi-grid-3x3 me-2 text-info fs-5"></i> Layout Grid</a></li>
+                        <li><hr class="dropdown-divider border-secondary-subtle opacity-25"></li>
+                        <li><h6 class="dropdown-header text-secondary text-uppercase" style="letter-spacing: 1px;">Accessibility & SDET</h6></li>
+                        <li><a class="dropdown-item sim-tab-btn text-light fw-bold py-2 d-flex align-items-center" href="#" data-tab="vision"><i class="bi bi-eye me-2 text-success fs-5"></i> Vision Simulator</a></li>
+                        <li><a class="dropdown-item sim-tab-btn text-info fw-bold py-2 d-flex align-items-center" href="#" data-tab="psi"><i class="bi bi-speedometer2 me-2 fs-5"></i> PageSpeed Insights</a></li>
+                        <li><a class="dropdown-item sim-tab-btn text-danger fw-bolder py-2 d-flex align-items-center" href="#" data-tab="enterprise"><i class="bi bi-radioactive me-2 fs-5"></i> Enterprise QA</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <label class="small text-muted fw-bold d-none d-md-block mb-0">Scale</label>
+            <input type="range" class="form-range" id="simScale" aria-label="Scale" min="0.2" max="1.5" step="0.05" value="1" style="width: 100px;">
+            <span id="simScaleVal" class="small fw-bold font-monospace text-end" style="width: 45px;">100%</span>
+        </div>
+    </div>
+
+    <div class="sim-body" id="simBody">
+        <div id="scaleContainer">
+            <div id="deviceFrame" class="device-frame phone notch-dynamic os-ios">
+                
+                <div class="hw-btn mute"></div><div class="hw-btn vol-up"></div><div class="hw-btn vol-down"></div><div class="hw-btn power"></div>
+                <div class="hw-status-bar"><span id="hwTime">--:--</span><span><i class="bi bi-wifi me-1"></i><i class="bi bi-battery-full fs-6"></i></span></div>
+                <div class="hw-notch"></div><div class="hw-home-indicator"></div><div class="hw-stand"></div>
+
+                <div class="screen-wrapper">
+                    
+                    <div class="browser-chrome ios-chrome">
+                        <div class="url-bar-pill w-75"><i class="bi bi-lock-fill text-dark opacity-50" style="font-size:0.7rem;"></i> <span class="chrome-url text-truncate fw-medium">example.com</span><i class="bi bi-arrow-clockwise ms-auto text-dark opacity-50"></i></div>
+                    </div>
+
+                    <div class="browser-chrome android-chrome px-2 pb-1">
+                        <div class="d-flex w-100 gap-2 align-items-center">
+                            <i class="bi bi-house-door-fill text-secondary fs-5"></i>
+                            <div class="url-bar-pill flex-grow-1" style="border-radius: 20px; padding: 4px 12px; justify-content: flex-start;">
+                                <i class="bi bi-shield-lock-fill text-dark opacity-50"></i>
+                                <span class="chrome-url text-truncate fw-medium text-dark">example.com</span>
+                            </div>
+                            <div class="border border-secondary rounded text-secondary d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: var(--mq-fs-xs); font-weight: bold;">1</div>
+                            <i class="bi bi-three-dots-vertical text-secondary fs-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="browser-chrome mac-chrome">
+                        <div class="url-bar-pill" style="width: 60%; padding: 2px 10px;"><i class="bi bi-lock-fill text-dark opacity-50" style="font-size:0.7rem;"></i> <span class="chrome-url text-truncate fw-medium">example.com</span></div>
+                    </div>
+
+                    <div class="browser-chrome win-chrome">
+                        <div class="win-tab">
+                            <i class="bi bi-globe2 text-primary"></i> <span class="chrome-url text-truncate" style="max-width: 150px;">example.com</span> <i class="bi bi-x text-muted ms-2 fs-5" style="line-height: 0;"></i>
+                        </div>
+                        <div class="d-flex gap-2 text-secondary pb-2 pe-1">
+                            <i class="bi bi-dash-lg"></i> <i class="bi bi-square"></i> <i class="bi bi-x-lg"></i>
+                        </div>
+                    </div>
+
+					<iframe id="simFrame" src=""></iframe>
+
+                    <div class="browser-bottom-bar ios-bottom">
+                        <i class="bi bi-chevron-left text-secondary opacity-50"></i><i class="bi bi-chevron-right text-secondary opacity-50"></i><i class="bi bi-box-arrow-up"></i><i class="bi bi-book"></i><i class="bi bi-copy"></i>
+                    </div>
+
+                    <div class="browser-bottom-bar android-bottom">
+                        <i class="bi bi-list fs-4"></i><i class="bi bi-square rounded px-2" style="font-size: 0.6rem;"></i><i class="bi bi-chevron-left fs-5"></i>
+                    </div>
+
+                    <div class="browser-bottom-bar win-bottom">
+                        <i class="bi bi-windows text-info fs-5"></i>
+                        <i class="bi bi-search text-white fs-6"></i>
+                        <i class="bi bi-folder2-open text-warning fs-5"></i>
+                        <i class="bi bi-browser-chrome text-primary fs-5"></i>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+	<div class="modal fade" id="reportReviewModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+			<div class="modal-content border-0 bg-dark shadow-lg rounded-3">
+				
+                <div class="modal-header py-2 px-3" style="background: var(--mq-sunken); border-bottom: 1px solid var(--mq-border-subtle);">
+					<h5 class="modal-title fw-bold text-white d-flex align-items-center mb-0">
+                        <span class="bg-success bg-opacity-25 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                            <i class="bi bi-layers-fill fs-6"></i>
+                        </span>
+                        Review Report Pages
+                    </h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+				</div>
+				
+                <div class="modal-body" style="background: var(--mq-surface);">
+                    <div id="reviewPagesList" class="row g-2 custom-scrollbar">
+                        </div>
+				</div>
+				
+                <div class="modal-footer p-3 border-top-0" style="background: var(--mq-sunken);">
+					<button type="button" class="btn btn-dark border-secondary-subtle rounded-pill px-3 fw-bold" data-bs-dismiss="modal">Close</button>
+					<button type="button" id="btnGenerateFinalPdf" class="btn btn-success rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2 btn-lift-hover">
+                        <i class="bi bi-download fs-5"></i> Download Final PDF
+                    </button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="annotationModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+		<div class="modal-dialog modal-fullscreen">
+			<div class="modal-content border-0 bg-dark">
+				
+                <div class="modal-header py-2 px-3" style="background: var(--mq-sunken); border-bottom: 1px solid var(--mq-border-subtle);">
+					<h5 class="modal-title fw-bold text-white d-flex align-items-center mb-0">
+                        <span class="bg-primary bg-opacity-25 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                            <i class="bi bi-pen-fill fs-6"></i>
+                        </span>
+                        QA Annotation Studio
+                    </h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+				</div>
+				
+                <div class="modal-body p-0 d-flex h-100" style="background: var(--mq-surface);">
+                    
+                    <div class="d-flex flex-column align-items-center p-2 gap-2 border-end" style="width: 80px; background: var(--mq-sunken); border-color: var(--mq-border-subtle) !important; z-index: 10;">
+                        
+						<div class="btn-group-vertical w-100 shadow-sm rounded-3" role="group">
+                            <input type="radio" class="btn-check" name="drawTool" id="toolBrush" value="brush" checked>
+                            <label class="btn btn-outline-secondary border-secondary-subtle p-2 d-flex justify-content-center align-items-center" for="toolBrush" title="Freehand Brush"><i class="bi bi-brush-fill fs-5"></i></label>
+                            
+                            <input type="radio" class="btn-check" name="drawTool" id="toolRect" value="rect">
+                            <label class="btn btn-outline-secondary border-secondary-subtle p-2 d-flex justify-content-center align-items-center" for="toolRect" title="Box Highlight"><i class="bi bi-square fs-5"></i></label>
+
+                            <input type="radio" class="btn-check" name="drawTool" id="toolArrow" value="arrow">
+                            <label class="btn btn-outline-secondary border-secondary-subtle p-2 d-flex justify-content-center align-items-center" for="toolArrow" title="Arrow Pointer"><i class="bi bi-arrow-up-right fs-5"></i></label>
+                        </div>
+
+                        <div class="w-100 text-center">
+                            <label class="small text-muted fw-bold mb-2" style="font-size: var(--mq-fs-xs); letter-spacing: 0.5px;">COLOR</label>
+                            <input type="color" id="drawColor" class="form-control form-control-color p-0 border-0 rounded-circle shadow-sm mx-auto" value="#ef4444" style="width:40px; height:40px; cursor:pointer;" title="Stroke Color">
+                        </div>
+
+                        <div class="w-100 text-center">
+                            <label class="small text-muted fw-bold mb-2" style="font-size: var(--mq-fs-xs); letter-spacing: 0.5px;">SIZE</label>
+                            <input type="range" id="drawSize" min="2" max="15" value="4" class="form-range" style="width: 100%;" title="Stroke Thickness">
+                        </div>
+
+                        <div class="mt-auto w-100 d-flex flex-column gap-2">
+                            <button id="btnUndo" class="btn btn-dark border-secondary-subtle w-100" title="Undo"><i class="bi bi-arrow-counterclockwise fs-5"></i></button>
+                            <button id="btnResetCanvas" class="btn btn-dark border-secondary-subtle w-100 text-danger" title="Clear Canvas"><i class="bi bi-trash fs-5"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow-1 position-relative overflow-auto d-flex justify-content-center align-items-start p-3 custom-scrollbar" style="background-image: radial-gradient(#334155 1px, transparent 0); background-size: 20px 20px;">
+                        <canvas id="annotationCanvas" class="shadow-lg rounded" style="max-width: 100%; height: auto; cursor: crosshair; background: transparent;"></canvas>
+                    </div>
+
+                    <div class="border-start d-flex flex-column shadow-lg" style="width: 380px; background: var(--mq-sunken); border-color: var(--mq-border-subtle) !important; z-index: 10; flex-shrink: 0;">
+                        
+                        <div id="annoTabDetailsPane" class="p-3 d-flex flex-column flex-grow-1">
+                            <div class="mb-3">
+                                <label class="small fw-bold text-muted mb-2 ms-1 text-uppercase" style="font-size: var(--mq-fs-xs); letter-spacing: 0.5px;">Issue Title</label>
+                                <input type="text" id="repoBugTitle" class="form-control border-secondary-subtle rounded-pill px-3 shadow-sm" placeholder="e.g. Broken Nav Layout">
+                            </div>
+                            <div class="mb-3 flex-grow-1 d-flex flex-column">
+                                <label class="small fw-bold text-muted mb-2 ms-1 text-uppercase" style="font-size: var(--mq-fs-xs); letter-spacing: 0.5px;">Observation / Notes</label>
+                                <textarea id="repoBugDesc" class="form-control border-secondary-subtle rounded-3 p-2 shadow-sm flex-grow-1 custom-scrollbar" placeholder="Describe what needs to be fixed..."></textarea>
+                            </div>
+                            <button type="button" id="btnAddPageToReport" class="btn btn-primary w-100 fw-bold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 mt-auto btn-lift-hover">
+                                <i class="bi bi-file-earmark-plus fs-5"></i> Save & Add to PDF
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+			</div>
+		</div>
+	</div>
+
+    <!-- ══════════════════════════════════════════════
+         🔍 LAYOUT ISSUES PANEL
+    ══════════════════════════════════════════════ -->
+    <div id="issuesPanel" style="
+        position: fixed; top: 0; right: -440px; width: 420px; height: 100vh;
+        background: var(--mq-sunken); border-left: 1px solid var(--mq-border-subtle);
+        display: flex; flex-direction: column; z-index: 200;
+        transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: -12px 0 40px rgba(0,0,0,0.5);
+    ">
+        <!-- Panel Header -->
+        <div style="padding: 14px 18px; background: var(--mq-surface); border-bottom: 1px solid var(--mq-border-subtle); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--mq-text); display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-bug-fill" style="color: var(--mq-warning);"></i> Layout Issues
+                    <span id="issueCount" style="background: var(--mq-surface-2); color: var(--mq-text-2); font-size: var(--mq-fs-xs); padding: 2px 8px; border-radius: 10px; font-weight: 600;">—</span>
+                </div>
+                <div id="issueSummary" style="font-size: var(--mq-fs-xs); color: var(--mq-text-muted); margin-top: 3px;">Click Detect to analyze the current layout</div>
+            </div>
+            <button id="closePanelBtn" aria-label="Close panel" style="background: rgba(255,255,255,0.05); border: 1px solid var(--mq-border-subtle); color: var(--mq-text-2); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.15s;">
+                <i class="bi bi-x-lg" style="font-size: 13px;"></i>
+            </button>
+        </div>
+
+        <!-- Severity Filter Tabs -->
+        <div style="display: flex; background: var(--mq-surface); border-bottom: 1px solid var(--mq-border-subtle); flex-shrink: 0;">
+            <button class="iq-tab active" data-filter="all"     style="flex:1; padding: 9px 4px; background: none; border: none; border-bottom: 2px solid #f59e0b; color: var(--mq-warning);    font-size: var(--mq-fs-xs); font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;">ALL</button>
+            <button class="iq-tab"        data-filter="error"   style="flex:1; padding: 9px 4px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--mq-text-muted); font-size: var(--mq-fs-xs); font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;">ERRORS</button>
+            <button class="iq-tab"        data-filter="warning" style="flex:1; padding: 9px 4px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--mq-text-muted); font-size: var(--mq-fs-xs); font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;">WARNINGS</button>
+            <button class="iq-tab"        data-filter="info"    style="flex:1; padding: 9px 4px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--mq-text-muted); font-size: var(--mq-fs-xs); font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;">INFO</button>
+        </div>
+
+        <!-- Issues List -->
+        <div id="issuesList" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="text-align: center; color: var(--mq-text-2); padding: 50px 20px; font-size: 13px; line-height: 1.6;">
+                <i class="bi bi-search" style="font-size: 36px; display: block; margin-bottom: 14px; opacity: 0.3;"></i>
+                Select a device and load a page,<br>then click <strong style="color: var(--mq-warning);">Detect</strong> to scan for layout issues.
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ GHOST OVERLAY PANEL ══════════════════════════════════════════════ -->
+    <div id="ghostPanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-layers-fill" style="color:#a855f7;"></i> Ghost Overlay</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">Superimpose a design mockup over the live page</div>
+            </div>
+            <button id="closeGhostPanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;">
+            <div id="ghostUploadZone" style="border:2px dashed var(--mq-border-subtle);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;">
+                <i class="bi bi-image" style="font-size:28px;color:var(--mq-text-2);display:block;margin-bottom:8px;"></i>
+                <div style="font-size:12px;font-weight:700;color:var(--mq-text-muted);margin-bottom:4px;">Click or drop a mockup image</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-2);">PNG · JPG · WebP</div>
+                <input type="file" id="ghostFileInput" accept="image/*" style="display:none;">
+            </div>
+            <div id="ghostControls" style="display:none;flex-direction:column;gap:12px;">
+                <img id="ghostPreviewImg" style="width:100%;border-radius:8px;border:1px solid var(--mq-border-subtle);">
+                <div>
+                    <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:5px;">Opacity<span id="ghostOpacityVal">50%</span></label>
+                    <input type="range" id="ghostOpacity" min="5" max="100" value="50" style="width:100%;accent-color:#a855f7;">
+                </div>
+                <div>
+                    <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:5px;">Offset X<span id="ghostOffsetXVal">0px</span></label>
+                    <input type="range" id="ghostOffsetX" min="-400" max="400" value="0" style="width:100%;accent-color:#a855f7;">
+                </div>
+                <div>
+                    <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:5px;">Offset Y<span id="ghostOffsetYVal">0px</span></label>
+                    <input type="range" id="ghostOffsetY" min="-400" max="400" value="0" style="width:100%;accent-color:#a855f7;">
+                </div>
+                <div>
+                    <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:5px;">Scale<span id="ghostScaleVal">100%</span></label>
+                    <input type="range" id="ghostScale" min="10" max="200" value="100" style="width:100%;accent-color:#a855f7;">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button id="ghostToggleBtn" style="flex:1;background:#a855f7;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-eye me-1"></i>Visible</button>
+                    <button id="ghostClearBtn" style="background:var(--mq-surface);color:var(--mq-danger);border:1px solid var(--mq-border-subtle);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ LAYOUT GRID PANEL ════════════════════════════════════════════════ -->
+    <div id="gridPanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-grid-3x3-gap-fill" style="color:var(--mq-info);"></i> Layout Grid</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">Inject column & baseline guides into the page</div>
+            </div>
+            <button id="closeGridPanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;">
+            <!-- Column Grid -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-info);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-columns-gap me-1"></i> Column Grid</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">COLUMNS</label><input type="number" id="gridCols" aria-label="Columns" value="12" min="1" max="24" style="width:100%;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:700;"></div>
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">GUTTER (px)</label><input type="number" id="gridGutter" aria-label="Gutter (px)" value="24" min="0" max="60" style="width:100%;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:700;"></div>
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">MAX WIDTH (px)</label><input type="number" id="gridMaxWidth" aria-label="Max width (px)" value="1140" min="200" max="3840" style="width:100%;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:700;"></div>
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">COLOR</label><input type="color" id="gridColor" aria-label="Grid color" value="#3b82f6" style="width:100%;height:34px;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);border-radius:6px;cursor:pointer;padding:2px;"></div>
+                </div>
+                <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:4px;">Opacity<span id="gridOpacityVal">20%</span></label>
+                <input type="range" id="gridOpacity" aria-label="Grid opacity" min="5" max="60" value="20" style="width:100%;accent-color:#06b6d4;margin-bottom:12px;">
+                <button id="gridToggleBtn" style="width:100%;background:#06b6d4;color:#0f172a;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-grid-3x3-gap me-1"></i>Inject Column Grid</button>
+            </div>
+            <!-- Baseline Grid -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-info);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-list me-1"></i> Baseline Grid</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">UNIT (px)</label><input type="number" id="baselineSize" aria-label="Baseline unit (px)" value="8" min="4" max="32" style="width:100%;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:700;"></div>
+                    <div><label style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;display:block;margin-bottom:4px;">LINE COLOR</label><input type="color" id="baselineColor" aria-label="Baseline line color" value="#f59e0b" style="width:100%;height:34px;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);border-radius:6px;cursor:pointer;padding:2px;"></div>
+                </div>
+                <button id="baselineToggleBtn" style="width:100%;background:var(--mq-surface);color:var(--mq-warning);border:1px solid #f59e0b;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-list-columns me-1"></i>Inject Baseline Grid</button>
+            </div>
+            <button id="gridClearAllBtn" style="width:100%;background:var(--mq-surface);color:var(--mq-danger);border:1px solid var(--mq-border-subtle);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-trash me-1"></i>Clear All Grids</button>
+        </div>
+    </div>
+
+    <!-- ══ VISUAL DIFF PANEL ═════════════════════════════════════════════════ -->
+    <div id="diffPanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-intersect" style="color:var(--mq-warning);"></i> Visual Diff</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">Pixel-level baseline vs current comparison</div>
+            </div>
+            <button id="closeDiffPanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <!-- Baseline -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-warning);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><i class="bi bi-camera me-1"></i> Baseline</div>
+                <div id="diffBaselineWrap" style="height:90px;background:var(--mq-sunken);border-radius:7px;border:1px dashed var(--mq-border-subtle);display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden;">
+                    <span id="diffBaselinePlaceholder" style="font-size:var(--mq-fs-xs);color:var(--mq-text-2);">Not captured</span>
+                    <img id="diffBaselineThumb" style="display:none;width:100%;height:100%;object-fit:contain;">
+                </div>
+                <button id="diffCaptureBaselineBtn" style="width:100%;background:#f97316;color:#0f172a;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-camera-fill me-1"></i>Capture as Baseline</button>
+            </div>
+            <!-- Current -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><i class="bi bi-camera me-1"></i> Current State</div>
+                <div id="diffCurrentWrap" style="height:90px;background:var(--mq-sunken);border-radius:7px;border:1px dashed var(--mq-border-subtle);display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden;">
+                    <span id="diffCurrentPlaceholder" style="font-size:var(--mq-fs-xs);color:var(--mq-text-2);">Not captured</span>
+                    <img id="diffCurrentThumb" style="display:none;width:100%;height:100%;object-fit:contain;">
+                </div>
+                <button id="diffCaptureCurrentBtn" style="width:100%;background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-camera-fill me-1"></i>Capture Current State</button>
+            </div>
+            <!-- Tolerance -->
+            <div style="background:var(--mq-surface);border-radius:8px;padding:12px;border:1px solid var(--mq-border-subtle);">
+                <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:flex;justify-content:space-between;margin-bottom:5px;">Pixel Tolerance<span id="diffToleranceVal">10</span></label>
+                <input type="range" id="diffTolerance" aria-label="Pixel tolerance" min="0" max="50" value="10" style="width:100%;accent-color:#f97316;">
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-2);margin-top:3px;">Higher = ignore minor rendering differences</div>
+            </div>
+            <!-- Run -->
+            <button id="diffRunBtn" disabled style="width:100%;background:var(--mq-surface-2);color:var(--mq-text-muted);border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:not-allowed;"><i class="bi bi-play-fill me-1"></i>Run Pixel Diff</button>
+            <!-- Result -->
+            <div id="diffResultWrap" style="display:none;flex-direction:column;gap:8px;">
+                <div id="diffScoreBadge" style="text-align:center;font-size:22px;font-weight:800;padding:12px;border-radius:10px;background:var(--mq-surface);border:1px solid var(--mq-border-subtle);color:var(--mq-text);"></div>
+                <canvas id="simDiffCanvas" style="width:100%;border-radius:8px;border:1px solid var(--mq-border-subtle);display:block;"></canvas>
+                <button id="diffDownloadBtn" style="width:100%;background:var(--mq-surface);color:var(--mq-success);border:1px solid #10b981;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-download me-1"></i>Download Diff Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ VISION SIMULATOR PANEL ════════════════════════════════════════════ -->
+    <div id="visionPanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-eye-fill" style="color:var(--mq-success);"></i> Vision Simulator</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">Simulate color blindness & accessibility conditions</div>
+            </div>
+            <button id="closeVisionPanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;">
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-success);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-palette me-1"></i> Color Vision Deficiency</div>
+                <div style="display:flex;flex-direction:column;gap:6px;" id="visionColorBtns">
+                    <button class="vision-filter-btn" data-filter="none"          style="background:var(--mq-sunken);border:1px solid #10b981;color:var(--mq-success);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;">Normal Vision<i class="bi bi-check2-circle"></i></button>
+                    <button class="vision-filter-btn" data-filter="protanopia"    style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Protanopia <span style="font-size:var(--mq-fs-xs);opacity:.6;">Red-blind</span></button>
+                    <button class="vision-filter-btn" data-filter="deuteranopia"  style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Deuteranopia <span style="font-size:var(--mq-fs-xs);opacity:.6;">Green-blind</span></button>
+                    <button class="vision-filter-btn" data-filter="tritanopia"    style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Tritanopia <span style="font-size:var(--mq-fs-xs);opacity:.6;">Blue-blind</span></button>
+                    <button class="vision-filter-btn" data-filter="achromatopsia" style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Achromatopsia <span style="font-size:var(--mq-fs-xs);opacity:.6;">Total color blindness</span></button>
+                </div>
+            </div>
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-success);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-eyeglasses me-1"></i> Vision Conditions</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <button class="vision-filter-btn" data-filter="blur(2px)"                 style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Low Vision <span style="font-size:var(--mq-fs-xs);opacity:.6;">Blur / cataracts simulation</span></button>
+                    <button class="vision-filter-btn" data-filter="contrast(0.5)"             style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Low Contrast <span style="font-size:var(--mq-fs-xs);opacity:.6;">50% contrast reduction</span></button>
+                    <button class="vision-filter-btn" data-filter="contrast(2) saturate(0)"   style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">High Contrast Mode <span style="font-size:var(--mq-fs-xs);opacity:.6;">Forced monochrome boost</span></button>
+                    <button class="vision-filter-btn" data-filter="brightness(0.2)"           style="background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);border-radius:7px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">Night Blindness <span style="font-size:var(--mq-fs-xs);opacity:.6;">Severe light sensitivity</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ ENTERPRISE QA PANEL ═══════════════════════════════════════════════ -->
+    <div id="enterprisePanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-clipboard2-check-fill" style="color:#6366f1;"></i> Enterprise QA<span style="font-size:var(--mq-fs-xs);font-weight:800;background:#6366f1;color:#fff;padding:2px 7px;border-radius:10px;">PRO</span></div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">WCAG audit · Batch testing · Full PDF export</div>
+            </div>
+            <button id="closeEnterprisePanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;">
+            <!-- WCAG Checklist -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="font-size:var(--mq-fs-xs);font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.8px;"><i class="bi bi-check2-all me-1"></i> WCAG 2.1 Checklist</div>
+                    <span id="wcagScore" style="font-size:var(--mq-fs-xs);font-weight:800;color:var(--mq-text-muted);">0 / 12</span>
+                </div>
+                <div id="wcagList"></div>
+            </div>
+            <!-- Batch URL Tester -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><i class="bi bi-collection me-1"></i> Batch URL Tester</div>
+                <textarea id="batchUrlInput" placeholder="One URL per line — opens each in a new simulator tab" style="width:100%;box-sizing:border-box;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:7px;padding:10px;font-size:var(--mq-fs-xs);font-family:monospace;resize:vertical;min-height:80px;margin-bottom:10px;"></textarea>
+                <div style="display:flex;gap:8px;">
+                    <button id="batchRunBtn" style="flex:1;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-play-fill me-1"></i>Launch All</button>
+                    <button id="batchSequentialBtn" style="flex:1;background:var(--mq-surface);color:#6366f1;border:1px solid #6366f1;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-skip-forward me-1"></i>Sequential</button>
+                </div>
+                <div id="batchStatus" style="display:none;margin-top:10px;font-size:var(--mq-fs-xs);color:var(--mq-text-muted);text-align:center;"></div>
+            </div>
+            <!-- Performance Snapshot -->
+            <div style="background:var(--mq-surface);border-radius:10px;padding:14px;border:1px solid var(--mq-border-subtle);">
+                <div style="font-size:var(--mq-fs-xs);font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;"><i class="bi bi-speedometer2 me-1"></i> Page Metrics</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                    <div style="background:var(--mq-sunken);border-radius:7px;padding:10px;border:1px solid var(--mq-border-subtle);text-align:center;"><div id="perfDomCount" style="font-size:18px;font-weight:800;color:var(--mq-text);">—</div><div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">DOM Nodes</div></div>
+                    <div style="background:var(--mq-sunken);border-radius:7px;padding:10px;border:1px solid var(--mq-border-subtle);text-align:center;"><div id="perfImgCount" style="font-size:18px;font-weight:800;color:var(--mq-text);">—</div><div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">Images</div></div>
+                    <div style="background:var(--mq-sunken);border-radius:7px;padding:10px;border:1px solid var(--mq-border-subtle);text-align:center;"><div id="perfScriptCount" style="font-size:18px;font-weight:800;color:var(--mq-text);">—</div><div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">Scripts</div></div>
+                    <div style="background:var(--mq-sunken);border-radius:7px;padding:10px;border:1px solid var(--mq-border-subtle);text-align:center;"><div id="perfAltMissing" style="font-size:18px;font-weight:800;color:var(--mq-text);">—</div><div style="font-size:var(--mq-fs-xs);color:var(--mq-danger);font-weight:700;text-transform:uppercase;margin-top:2px;">Missing Alt</div></div>
+                </div>
+                <button id="perfScanBtn" style="width:100%;background:var(--mq-surface);color:#6366f1;border:1px solid #6366f1;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;"><i class="bi bi-cpu me-1"></i>Scan Page Metrics</button>
+            </div>
+            <!-- Export Audit -->
+            <button id="exportAuditBtn" style="width:100%;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="bi bi-file-earmark-arrow-down fs-5"></i> Export Full Audit PDF
+            </button>
+        </div>
+    </div>
+
+    <div id="psiPanel" style="position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--mq-sunken);border-left:1px solid var(--mq-border-subtle);display:flex;flex-direction:column;z-index:199;transition:right .35s cubic-bezier(.4,0,.2,1);box-shadow:-12px 0 40px rgba(0,0,0,.5);">
+        <div style="padding:14px 18px;background:var(--mq-surface);border-bottom:1px solid var(--mq-border-subtle);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <div>
+                <div style="font-size:14px;font-weight:700;color:var(--mq-text);display:flex;align-items:center;gap:8px;"><i class="bi bi-speedometer2" style="color:var(--mq-info);"></i> PageSpeed Insights</div>
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:3px;">Powered by Google Lighthouse Engine</div>
+            </div>
+            <button id="closePsiPanelBtn" aria-label="Close panel" style="background:rgba(255,255,255,.05);border:1px solid var(--mq-border-subtle);color:var(--mq-text-2);cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="bi bi-x-lg" style="font-size:13px;"></i></button>
+        </div>
+        
+        <div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;" class="custom-scrollbar">
+            
+            <div style="display:flex; background:var(--mq-surface); border-radius:8px; padding:4px; border:1px solid var(--mq-border-subtle);">
+                <button class="psi-strategy-btn active" data-strategy="MOBILE" style="flex:1; background:#0ea5e9; color:#0f172a; border:none; padding:8px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s;"><i class="bi bi-phone me-1"></i> Mobile</button>
+                <button class="psi-strategy-btn" data-strategy="DESKTOP" style="flex:1; background:transparent; color:var(--mq-text-2); border:none; padding:8px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s;"><i class="bi bi-display me-1"></i> Desktop</button>
+            </div>
+
+            <div style="background:var(--mq-surface); border-radius:8px; padding:12px; border:1px solid var(--mq-border-subtle);">
+                <label style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-text-2);display:block;margin-bottom:6px;">Google API Key (Required for stable use)</label>
+                <input type="password" id="psiApiKey" placeholder="AIzaSy..." style="width:100%;background:var(--mq-sunken);border:1px solid var(--mq-border-subtle);color:var(--mq-text);border-radius:6px;padding:8px 10px;font-size:12px;font-family:monospace;">
+                <div style="font-size:var(--mq-fs-xs);color:var(--mq-text-muted);margin-top:6px;">Get a free key from the <a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" style="color:var(--mq-info);text-decoration:none;">Google Cloud Console</a>.</div>
+            </div>
+
+            <button id="psiRunBtn" style="width:100%;background:#0ea5e9;color:#0f172a;border:none;border-radius:8px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(14,165,233,0.3);">
+                <i class="bi bi-lightning-charge-fill"></i> Analyze Current URL
+            </button>
+
+            <div id="psiResultsContainer" style="display:none; flex-direction:column; gap:16px; margin-top:8px; animation: _mqFadeIn 0.3s ease-out;">
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="background:var(--mq-surface); border:1px solid var(--mq-border-subtle); border-radius:10px; padding:16px; text-align:center; display:flex; flex-direction:column; align-items:center;">
+                        <div id="psiPerfCircle" style="width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; background:conic-gradient(#10b981 90%, var(--mq-surface-2) 0); position:relative;">
+                            <div style="position:absolute; width:54px; height:54px; background:var(--mq-surface); border-radius:50%; display:flex; align-items:center; justify-content:center;" id="psiPerfScore">90</div>
+                        </div>
+                        <div style="font-size:var(--mq-fs-xs); font-weight:700; color:var(--mq-text-2); margin-top:10px;">Performance</div>
+                    </div>
+                    <div style="background:var(--mq-surface); border:1px solid var(--mq-border-subtle); border-radius:10px; padding:16px; text-align:center; display:flex; flex-direction:column; align-items:center;">
+                        <div id="psiAccessCircle" style="width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; background:conic-gradient(#f59e0b 85%, var(--mq-surface-2) 0); position:relative;">
+                            <div style="position:absolute; width:54px; height:54px; background:var(--mq-surface); border-radius:50%; display:flex; align-items:center; justify-content:center;" id="psiAccessScore">85</div>
+                        </div>
+                        <div style="font-size:var(--mq-fs-xs); font-weight:700; color:var(--mq-text-2); margin-top:10px;">Accessibility</div>
+                    </div>
+                    <div style="background:var(--mq-surface); border:1px solid var(--mq-border-subtle); border-radius:10px; padding:16px; text-align:center; display:flex; flex-direction:column; align-items:center;">
+                        <div id="psiBestCircle" style="width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; background:conic-gradient(#10b981 100%, var(--mq-surface-2) 0); position:relative;">
+                            <div style="position:absolute; width:54px; height:54px; background:var(--mq-surface); border-radius:50%; display:flex; align-items:center; justify-content:center;" id="psiBestScore">100</div>
+                        </div>
+                        <div style="font-size:var(--mq-fs-xs); font-weight:700; color:var(--mq-text-2); margin-top:10px;">Best Practices</div>
+                    </div>
+                    <div style="background:var(--mq-surface); border:1px solid var(--mq-border-subtle); border-radius:10px; padding:16px; text-align:center; display:flex; flex-direction:column; align-items:center;">
+                        <div id="psiSeoCircle" style="width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; background:conic-gradient(#ef4444 40%, var(--mq-surface-2) 0); position:relative;">
+                            <div style="position:absolute; width:54px; height:54px; background:var(--mq-surface); border-radius:50%; display:flex; align-items:center; justify-content:center;" id="psiSeoScore">40</div>
+                        </div>
+                        <div style="font-size:var(--mq-fs-xs); font-weight:700; color:var(--mq-text-2); margin-top:10px;">SEO</div>
+                    </div>
+                </div>
+
+                <div style="background:var(--mq-surface); border-radius:10px; padding:14px; border:1px solid var(--mq-border-subtle);">
+                    <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-info);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-activity me-1"></i> Core Web Vitals (Lab Data)</div>
+                    <div id="psiMetricsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+
+                <div style="background:var(--mq-surface); border-radius:10px; padding:14px; border:1px solid var(--mq-border-subtle);">
+                    <div style="font-size:var(--mq-fs-xs);font-weight:700;color:var(--mq-warning);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;"><i class="bi bi-wrench-adjustable me-1"></i> Opportunities</div>
+                    <div id="psiOpportunitiesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    
+	<script src="scripts/bootstrap.bundle.min.js"></script>
+    <script src="scripts/jspdf.umd.min.js"></script>
+    <script src="scripts/safe_html.js"></script>
+    <script src="scripts/mq_float.js" data-enhance></script>
+    <script src="scripts/simulator.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-marquis-theme="default" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>MarquisFloat self-test</title>
+    <!-- Open this file directly (file://) in Chrome. Not part of the extension UI; not referenced by manifest.json. -->
+    <link rel="stylesheet" href="../styles/bootstrap.min.css">
+    <link rel="stylesheet" href="../styles/bootstrap-icons.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <style>
+        body { padding: 16px; width: 600px; }
+        .fixture { margin-bottom: 12px; }
+        #results li.fail { color: var(--mq-danger); }
+        #results li.pass { color: var(--mq-success); }
+    </style>
+</head>
+<body>
+    <h6 class="mb-2">MarquisFloat self-test <span id="summary" class="badge bg-secondary">running</span></h6>
+
+    <div class="fixture">
+        <label class="form-label" for="sBasic">Fruit</label>
+        <select id="sBasic" class="form-select">
+            <option value="a">Apple</option>
+            <option value="b" disabled>Banana</option>
+            <option value="c">Cherry</option>
+            <option value="d">Date</option>
+        </select>
+    </div>
+
+    <div class="fixture">
+        <select id="sGroups" class="form-select form-select-sm" aria-label="Unit">
+            <optgroup label="Length"><option>Meter</option><option>Foot</option></optgroup>
+            <optgroup label="Mass"><option>Gram</option></optgroup>
+        </select>
+    </div>
+
+    <div class="fixture"><select id="sLong" class="form-select" aria-label="Long list"></select></div>
+
+    <div class="fixture" style="height: 40px; overflow: hidden; border: 1px solid var(--mq-border);">
+        <select id="sClip" class="form-select" aria-label="Clipped">
+            <option>One</option><option>Two</option><option>Three</option><option>Four</option><option>Five</option>
+        </select>
+    </div>
+
+    <div class="fixture" style="backdrop-filter: blur(1px);">
+        <select id="sGlass" class="form-select" aria-label="Inside backdrop-filter">
+            <option>North</option><option>South</option>
+        </select>
+    </div>
+
+    <div class="fixture dropdown">
+        <button id="mBtn" class="btn btn-outline-secondary" data-bs-toggle="dropdown" type="button">Actions</button>
+        <ul class="dropdown-menu">
+            <li><h6 class="dropdown-header">List</h6></li>
+            <li><a class="dropdown-item" href="#" id="mRename">Rename</a></li>
+            <li><a class="dropdown-item disabled" href="#">Archived</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="mDelete">Delete</a></li>
+        </ul>
+    </div>
+
+    <div class="fixture"><button id="m2Btn" class="btn btn-outline-secondary" type="button">More</button></div>
+
+    <div class="fixture" id="shadowHost"></div>
+
+    <div class="modal" id="tModal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content"><div class="modal-body">
+            <select id="sModal" class="form-select" data-search aria-label="In modal">
+                <option>Alpha</option><option>Beta</option><option>Gamma</option>
+            </select>
+        </div></div></div>
+    </div>
+
+    <div style="position: fixed; left: 16px; bottom: 8px; width: 220px;">
+        <select id="sBottom" class="form-select" aria-label="Bottom">
+            <option>Item 1</option><option>Item 2</option><option>Item 3</option><option>Item 4</option>
+            <option>Item 5</option><option>Item 6</option><option>Item 7</option><option>Item 8</option>
+        </select>
+    </div>
+
+    <ol id="results" class="small"></ol>
+
+    <script src="../scripts/bootstrap.bundle.min.js"></script>
+    <script src="../scripts/mq_float.js"></script>
+    <script src="mq_float.selftest.js"></script>
+</body>
+</html>
