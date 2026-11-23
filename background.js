@@ -14,77 +14,106 @@ if (chrome.notifications && chrome.notifications.onClicked) {
 //
 // Message contract
 //   popup / dock -> SW  { action: 'capture', type: 'visible' | 'full' | 'region', tabId? }
-//                <- SW  { ok: true, id }        saved to CaptureStore, preview.html?id= opened
-//                       { ok: true, id: null }  region selection cancelled
-//                       { ok: false, error }    nothing saved; error is user-readable
-//   page.js      -> SW  { msg: 'capture', x, y, complete, windowWidth, windowHeight, totalWidth, totalHeight }
-//                <- SW  true = tile stored, scroll on; false = stop
+//                <- SW  { ok: true, id, parts?, notes? }  saved to CaptureStore, preview.html?id= opened
+//                       { ok: true, id: null }             region selection cancelled
+//                       { ok: false, error, state? }       nothing saved; error is user-readable
+//   popup / page HUD -> SW  { action: 'captureCancel' }    stops a running full-page capture
+//   SW -> anyone         { action: 'captureProgress', state, text, done, total }   (nobody may be listening)
 //
-// Lifecycle: idle -> (selecting) -> capturing -> saving -> idle. `_capture` is the lock and the only
-// capture state; it is claimed synchronously and always released in runCapture's finally.
+// Full page: scripts/fullpage.js (in the page) measures, prepares and scrolls; this worker plans the tiles,
+// captures them at most twice a second, stitches them into segments (scripts/fullpage_stitch.js), saves
+// them and always has the page restored. States: ANALYZING -> PREPARING -> CAPTURING -> STITCHING ->
+// EXPORTING -> COMPLETED, or CANCELLED / FAILED / TIMED_OUT / INTERRUPTED. `_capture` is the lock: claimed
+// synchronously, released in runCapture's finally.
 
-importScripts('/scripts/capture_store.js');
+importScripts('/scripts/capture_store.js', '/scripts/fullpage_stitch.js');
 
 const CAPTURE_TYPES = ['visible', 'full', 'region'];
 const TILE_INTERVAL_MS = 550; // Chrome allows 2 captureVisibleTab calls per second
+const FULL = { maxTiles: 400, maxParts: 10, maxMs: 240000, captureRetries: 4 };
 let _capture = null;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.msg === 'capture') {
-        const c = _capture;
-        if (!c || c.type !== 'full' || sender.tab?.id !== c.tabId) return false;
-        captureTile(c, request).then(() => sendResponse(true), (err) => { c.error = err; sendResponse(false); });
-        return true;
+    if (request.action === 'captureCancel') {
+        _capture?.cancel('Capture cancelled.', 'CANCELLED');
+        sendResponse({ ok: !!_capture });
+        return false;
     }
     if (request.action === 'capture') {
         if (!CAPTURE_TYPES.includes(request.type)) return false;
         const tabId = Number.isInteger(request.tabId) ? request.tabId : null;
         runCapture(request.type, tabId, sender).then(
-            (id) => sendResponse({ ok: true, id }),
-            (err) => sendResponse({ ok: false, error: err.message || String(err) })
+            (result) => sendResponse({ ok: true, ...result }),
+            (err) => sendResponse({ ok: false, error: err.message || String(err), state: err.state || 'FAILED' })
         );
         return true;
     }
     return false;
 });
 
+function newCapture(type) {
+    const c = {
+        type, state: 'IDLE', startedAt: Date.now(), stop: null, stopState: null,
+        cancel(message, state = 'CANCELLED') {
+            if (c.stop) return;
+            c.stop = message; c.stopState = state;
+            if (c.tabId) chrome.scripting.executeScript({ target: { tabId: c.tabId }, func: () => window.__marquisFullPage?.cancel() }).catch(() => {});
+        },
+        // Throws once the capture was cancelled, interrupted or ran out of time.
+        check() {
+            if (!c.stop && Date.now() - c.startedAt > FULL.maxMs) { c.stop = 'The capture took longer than 4 minutes and was stopped.'; c.stopState = 'TIMED_OUT'; }
+            if (c.stop) throw Object.assign(new Error(c.stop), { state: c.stopState });
+        },
+    };
+    return c;
+}
+
+function captureProgress(c, state, text, done = 0, total = 0) {
+    c.state = state;
+    chrome.runtime.sendMessage({ action: 'captureProgress', state, text, done, total }).catch(() => {});
+}
+
 async function runCapture(type, tabId, sender) {
     if (_capture) throw new Error('Another capture is still running. Wait for it to finish.');
-    _capture = { type };
-    let tab = null;
+    const c = _capture = newCapture(type);
+    let tab = null, previous = null;
     try {
         tab = tabId ? await chrome.tabs.get(tabId)
             : sender.tab || (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
         if (!tab) throw new Error('No tab to capture.');
         if (!tab.url || !isUrlAllowed(tab.url)) throw new Error('Chrome does not allow capturing this page.');
-        Object.assign(_capture, { tabId: tab.id, windowId: tab.windowId });
+        Object.assign(c, { tabId: tab.id, windowId: tab.windowId });
         chrome.action.setBadgeText({ text: '', tabId: tab.id }); // clear an ERR left by a previous failure
 
+        // Chrome can only capture the visible tab of a window: show the chosen tab, and put the previous one
+        // back if a full-page capture does not finish.
+        [previous] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
         await chrome.tabs.update(tab.id, { active: true });
         if (type !== 'visible') await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
         await sleep(300);
 
-        let blob;
-        if (type === 'full') {
-            blob = await captureFullPage(_capture, tab);
-        } else {
-            const rect = type === 'region' ? await selectRegion(tab.id) : null;
-            if (type === 'region' && !rect) return null;
-            blob = await captureViewport(tab, rect);
-        }
+        if (type === 'full') return await saveFullPage(c, tab, await captureFullPage(c, tab));
 
+        const rect = type === 'region' ? await selectRegion(tab.id) : null;
+        if (type === 'region' && !rect) return { id: null };
+        const blob = await captureViewport(tab, rect);
         const bmp = await createImageBitmap(blob);
         const record = { type, createdAt: Date.now(), title: tab.title || '', url: tab.url, width: bmp.width, height: bmp.height, blob, thumb: await makeThumb(bmp) };
         bmp.close();
         const id = await CaptureStore.add(record);
         await chrome.tabs.create({ url: chrome.runtime.getURL(`preview.html?id=${id}`), windowId: tab.windowId, index: tab.index + 1, openerTabId: tab.id });
-        return id;
+        return { id };
     } catch (err) {
-        console.error('Capture error:', err);
-        if (tab) {
+        const state = err.state || 'FAILED';
+        if (type === 'full') captureProgress(c, state, err.message);
+        if (tab && state !== 'CANCELLED') {
             chrome.action.setBadgeText({ text: 'ERR', tabId: tab.id });
             chrome.action.setBadgeBackgroundColor({ color: '#ef4444', tabId: tab.id });
         }
+        if (type === 'full' && previous && previous.id !== tab?.id && state !== 'INTERRUPTED') {
+            chrome.tabs.update(previous.id, { active: true }).catch(() => {});
+        }
+        if (state === 'FAILED') console.error('Capture error:', err);
         throw err;
     } finally {
         _capture = null;
@@ -205,96 +234,140 @@ async function selectRegion(tabId) {
     return injection?.result || null;
 }
 
+// Drives scripts/fullpage.js tile by tile. Returns { parts: [{ blob, width, height }], notes: [text] }.
 async function captureFullPage(c, tab) {
-    c.tiles = [];
-    chrome.action.setBadgeBackgroundColor({ color: '#6366f1', tabId: tab.id });
-    chrome.action.setBadgeText({ text: 'SCAN', tabId: tab.id });
+    const tabId = tab.id;
+    const page = async (name, ...args) => {
+        c.check();
+        const [res] = await chrome.scripting.executeScript({ target: { tabId }, func: (n, a) => window.__marquisFullPage[n](...a), args: [name, args] });
+        c.check();
+        return res?.result;
+    };
+    // Chrome captures whatever tab is visible: stop rather than capture the wrong tab or a new page.
+    const onRemoved = (id) => { if (id === tabId) c.cancel('The tab was closed during the capture.', 'INTERRUPTED'); };
+    const onUpdated = (id, info) => { if (id === tabId && info.status === 'loading') c.cancel('The page navigated away during the capture.', 'INTERRUPTED'); };
+    const onActivated = (info) => {
+        if (info.windowId === tab.windowId && info.tabId !== tabId) c.cancel('Another tab came to the front, so the capture stopped (Chrome can only capture the visible tab).', 'INTERRUPTED');
+    };
+    chrome.tabs.onRemoved.addListener(onRemoved);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onActivated.addListener(onActivated);
+    chrome.action.setBadgeBackgroundColor({ color: '#6366f1', tabId });
     try {
-        const [{ result: bg } = {}] = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                if (!document.getElementById('odh-capture-hud')) {
-                    const hud = document.createElement('div');
-                    hud.id = 'odh-capture-hud';
-                    hud.style.cssText = 'position: fixed; top: 30px; right: 30px; z-index: 2147483647; background: rgba(15, 23, 42, 0.95); color: #f8fafc; padding: 12px 24px; border-radius: 50px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.15); pointer-events: none;';
-                    hud.innerHTML = '<div style="width:18px;height:18px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:odh-spin 1s linear infinite;"></div><span id="odh-capture-progress">Scanning... 0%</span><style>@keyframes odh-spin{to{transform:rotate(360deg);}}</style>';
-                    document.body.appendChild(hud);
-                }
-                return getComputedStyle(document.body).backgroundColor;
-            }
-        });
-        const bgColor = !bg || bg === 'transparent' || /,\s*0\)$/.test(bg) ? '#ffffff' : bg;
-
-        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['scripts/page.js'] });
-        await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Capture timed out after 3 minutes.')), 180000);
-            chrome.tabs.sendMessage(tab.id, { msg: 'scrollPage' }, () => {
-                clearTimeout(timeout);
-                const err = chrome.runtime.lastError;
-                err ? reject(new Error(err.message)) : resolve();
-            });
-        });
-
-        if (c.error) throw c.error;
-        if (!c.tiles.length) throw new Error('No part of the page could be captured.');
-        return await stitchTiles(c.tiles, c.size, bgColor);
-    } finally {
-        chrome.action.setBadgeText({ text: '', tabId: tab.id });
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                document.getElementById('odh-capture-hud')?.remove();
-                delete window._marquisPageCapturing;
-            }
-        }).catch(() => {});
-    }
-}
-
-async function captureTile(c, req) {
-    c.size = { windowWidth: req.windowWidth, totalWidth: req.totalWidth, totalHeight: req.totalHeight };
-    await setOwnUiHidden(c.tabId, true, `Scanning... ${Math.round(req.complete * 100)}%`);
-    try {
-        const wait = TILE_INTERVAL_MS - (Date.now() - (c.lastShot || 0));
-        if (wait > 0) await sleep(wait);
-        let dataUrl;
+        captureProgress(c, 'ANALYZING', 'Analyzing page...');
         try {
-            dataUrl = await captureVisibleTab(c.windowId);
+            await chrome.scripting.executeScript({ target: { tabId }, files: ['scripts/fullpage.js'] });
         } catch {
-            await sleep(TILE_INTERVAL_MS); // quota hiccup: one retry, then fail loudly instead of leaving a gap
-            dataUrl = await captureVisibleTab(c.windowId);
+            throw new Error('Chrome does not let extensions scroll this page (Chrome Web Store, PDF viewer or another protected page). Use Visible Area instead.');
         }
-        c.lastShot = Date.now();
-        c.tiles.push({ blob: await dataUrlToBlob(dataUrl), x: req.x, y: req.y });
+        await page('hud', 'Preparing page...');
+        captureProgress(c, 'PREPARING', 'Loading the whole page...');
+        chrome.action.setBadgeText({ text: 'SCAN', tabId });
+        const info = await page('prepare');
+        if (!info) throw new Error('The page stopped responding while it was prepared.');
+        if (info.pdf) throw new Error('PDFs open in the Chrome viewer cannot be scrolled by extensions. Use Visible Area instead.');
+        const notes = fullPageNotes(info);
+
+        let m = info, stitcher = null, scale = 0, done = 0, limitH = Infinity;
+        const remaining = (after) => FullPageStitch.plan({ ...m, fullH: Math.min(m.fullH, limitH) })
+            .filter((q) => !after || q.y > after.y || (q.y === after.y && q.x > after.x));
+        let queue = remaining(null);
+        captureProgress(c, 'CAPTURING', 'Capturing...', 0, queue.length);
+        while (queue.length) {
+            if (done >= FULL.maxTiles) { notes.push(`Stopped after ${FULL.maxTiles} screenshots; the rest of the page is not in the image.`); break; }
+            const p = queue.shift();
+            const r = await page('shot', p.x, p.y, p.y === 0);
+            const wait = TILE_INTERVAL_MS - (Date.now() - (c.lastShot || 0));
+            if (wait > 0) await sleep(wait);
+            const [front] = await chrome.tabs.query({ active: true, windowId: c.windowId });
+            if (front?.id !== tabId) c.cancel('Another tab came to the front, so the capture stopped (Chrome can only capture the visible tab).', 'INTERRUPTED');
+            c.check();
+            const dataUrl = await captureWithRetry(c);
+            c.lastShot = Date.now();
+            done++;
+            const bmp = await createImageBitmap(await dataUrlToBlob(dataUrl));
+            const s = bmp.width / r.innerW;                        // device px per CSS px, including zoom
+            if (!stitcher) {
+                scale = s;
+                stitcher = new FullPageStitch.Stitcher({ width: Math.round(m.fullW * s), height: Math.round(m.fullH * s), bg: info.bg });
+                const maxRows = Math.max(1, Math.floor(FULL.maxParts / stitcher.cols));
+                if (stitcher.rows > maxRows) {                     // never more than maxParts images: stop there, and say so
+                    limitH = Math.floor(maxRows * stitcher.segH / s);
+                    stitcher.H = Math.round(limitH * s);
+                    notes.push(`The page is ${Math.round(m.fullH).toLocaleString()} px tall; the first ${limitH.toLocaleString()} px were captured (${FULL.maxParts} images is the limit).`);
+                    queue = remaining(p);
+                }
+            } else if (Math.abs(s - scale) > 0.01) {
+                bmp.close();
+                throw new Error('The page zoom changed during the capture. Try again without zooming.');
+            }
+            if (r.fullH > m.fullH + 1 && m.fullH < limitH) {       // the page grew (lazy sections): extend the plan
+                m = { ...m, fullH: r.fullH };
+                stitcher.setHeight(Math.round(Math.min(m.fullH, limitH) * s));
+                queue = remaining(p);
+            }
+            const sx = Math.round(r.clipX * s), sy = Math.round(r.clipY * s);
+            await stitcher.add({ bmp, sx, sy, sw: Math.min(Math.round(r.viewW * s), bmp.width - sx), sh: Math.min(Math.round(r.viewH * s), bmp.height - sy),
+                dx: Math.round(r.x * s), dy: Math.round(r.y * s) });
+            const total = done + queue.length;
+            captureProgress(c, 'CAPTURING', `Capturing ${done} of ${total}...`, done, total);
+            if (queue.length) await page('hud', `Capturing ${done} of ${total}... Esc to cancel`);
+        }
+        captureProgress(c, 'STITCHING', 'Stitching images...');
+        await page('hud', 'Stitching images...').catch(() => {});
+        const parts = await stitcher.finish();
+        if (parts.length > 1) notes.push(`The page was too large for one image, so it was saved as ${parts.length} images in order.`);
+        return { parts, notes };
     } finally {
-        if (req.complete < 1) await setOwnUiHidden(c.tabId, false);
+        chrome.tabs.onRemoved.removeListener(onRemoved);
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        chrome.tabs.onActivated.removeListener(onActivated);
+        chrome.action.setBadgeText({ text: '', tabId });
+        await chrome.scripting.executeScript({ target: { tabId }, func: () => window.__marquisFullPage?.restore() }).catch(() => {});
     }
 }
 
-// Tiles are { blob, x, y } at CSS-px scroll offsets; output is one PNG in device px (capped at 32000 px a side).
-async function stitchTiles(tiles, { windowWidth, totalWidth, totalHeight }, bgColor) {
-    const bitmaps = await Promise.all(tiles.map(t => createImageBitmap(t.blob)));
-    try {
-        const dpr = bitmaps[0].width / windowWidth;
-        const MAX_DIM = 32000;
-        let w = Math.round(totalWidth * dpr), h = Math.round(totalHeight * dpr), scale = 1;
-        if (w > MAX_DIM || h > MAX_DIM) {
-            scale = Math.min(MAX_DIM / w, MAX_DIM / h);
-            w = Math.floor(w * scale);
-            h = Math.floor(h * scale);
+// What the user should know about the result: parts of the page that cannot be in it, and why.
+function fullPageNotes(info) {
+    const notes = [];
+    if (info.mode === 'element') notes.push('This page scrolls inside a panel, so the image shows that panel in full.');
+    if (info.frames?.crossOrigin) notes.push(`${info.frames.crossOrigin} embedded frame(s) from other sites appear as shown on screen; content scrolled inside them is not captured.`);
+    if (info.notes?.includes('growing')) notes.push('The page kept loading more content (an endless feed), so it was captured as far as it had loaded.');
+    if (info.notes?.includes('limit')) notes.push('The page is extremely long; it was captured up to 60,000 px.');
+    if (info.notes?.includes('slow')) notes.push('Some content was still loading after 15 seconds and may be missing.');
+    return notes;
+}
+
+async function captureWithRetry(c) {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await captureVisibleTab(c.windowId);
+        } catch (err) {
+            const rate = /MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND|quota/i.test(err.message);
+            if (!rate || attempt >= FULL.captureRetries) {
+                throw new Error(rate ? 'Chrome kept refusing screenshots (too many requests). Try again in a moment.' : `Chrome refused the screenshot: ${err.message}`);
+            }
+            await sleep(TILE_INTERVAL_MS * attempt);            // back off, then retry
+            c.check();
         }
-        const canvas = new OffscreenCanvas(w, h);
-        const ctx = canvas.getContext('2d', { alpha: false });
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, w, h);
-        ctx.imageSmoothingEnabled = scale !== 1; // unscaled seams stay pixel-exact
-        tiles.forEach((t, i) => {
-            const b = bitmaps[i];
-            ctx.drawImage(b, Math.floor(t.x * dpr * scale), Math.floor(t.y * dpr * scale), b.width * scale, b.height * scale);
-        });
-        return await canvas.convertToBlob({ type: 'image/png' });
-    } finally {
-        bitmaps.forEach(b => b.close());
     }
+}
+
+// Each part becomes one capture; titles and fields (part / parts) keep them in order.
+async function saveFullPage(c, tab, { parts, notes }) {
+    captureProgress(c, 'EXPORTING', 'Saving...');
+    const createdAt = Date.now();
+    const ids = [];
+    for (const [i, part] of parts.entries()) {
+        const bmp = await createImageBitmap(part.blob);
+        const suffix = parts.length > 1 ? ` (part ${i + 1} of ${parts.length})` : '';
+        ids.push(await CaptureStore.add({ type: 'full', createdAt, title: (tab.title || '') + suffix, url: tab.url, width: part.width, height: part.height,
+            blob: part.blob, thumb: await makeThumb(bmp), ...(parts.length > 1 ? { part: i + 1, parts: parts.length } : {}) }));
+        bmp.close();
+    }
+    await chrome.tabs.create({ url: chrome.runtime.getURL(`preview.html?id=${ids[0]}`), windowId: tab.windowId, index: tab.index + 1, openerTabId: tab.id });
+    captureProgress(c, 'COMPLETED', parts.length > 1 ? `Saved as ${parts.length} images.` : 'Saved.');
+    return { id: ids[0], parts: parts.length, notes };
 }
 
 function isUrlAllowed(url) {

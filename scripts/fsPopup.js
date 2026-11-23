@@ -93,9 +93,11 @@
             setTimeout(() => window.close(), 150);
             return;
         }
+        if (type === 'full') fullStatus.start();
         try {
             const res = await pending;
-            if (res && !res.ok) showError(res.error);
+            if (type === 'full') fullStatus.end(res);
+            else if (res && !res.ok) showError(res.error);
         } catch {
             // The popup lost its channel (e.g. it closed when preview.html opened): nothing to report.
         } finally {
@@ -103,6 +105,53 @@
             setSpinner(btnId, false);
         }
     }
+
+    /* Full-page progress in #fpStatusContainer: background.js broadcasts { action: 'captureProgress', state,
+     * text, done, total }; Cancel (also Esc / Cancel on the page itself) sends { action: 'captureCancel' }. */
+    const fullStatus = (() => {
+        let box = null, listening = false;
+        const onProgress = (msg) => {
+            if (msg?.action !== 'captureProgress' || !box) return;
+            box.querySelector('.fp-text').textContent = msg.text;
+            const pct = msg.total ? Math.round(msg.done / msg.total * 100) : (/STITCHING|EXPORTING|COMPLETED/.test(msg.state) ? 100 : 0);
+            box.querySelector('.progress-bar').style.width = pct + '%';
+            box.querySelector('.progress').setAttribute('aria-valuenow', String(pct));
+        };
+        return {
+            start() {
+                const host = document.getElementById('fpStatusContainer');
+                if (!host) return;
+                if (!listening) { chrome.runtime.onMessage.addListener(onProgress); listening = true; }
+                host.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 border rounded-3 bg-body" role="status">
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="small fw-bold text-truncate fp-text">Starting full-page capture...</div>
+                        <div class="progress mt-1" style="height: 6px;" role="progressbar" aria-label="Full-page capture progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            <div class="progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary fp-cancel">Cancel</button>
+                </div>`;
+                box = host.firstElementChild;
+                box.querySelector('.fp-cancel').addEventListener('click', (e) => {
+                    e.currentTarget.disabled = true;
+                    chrome.runtime.sendMessage({ action: 'captureCancel' }).catch(() => {});
+                });
+            },
+            end(res) {
+                const host = document.getElementById('fpStatusContainer');
+                box = null;
+                if (!host) return;
+                host.textContent = '';
+                if (res && !res.ok && res.state !== 'CANCELLED') { showError(res.error); return; }
+                const lines = res && !res.ok ? [res.error] : (res?.notes || []);
+                if (!lines.length) return;
+                const note = document.createElement('div');
+                note.className = 'small text-muted p-2 border rounded-3 bg-body';
+                lines.forEach((t) => { const p = document.createElement('div'); p.textContent = t; note.appendChild(p); });
+                host.appendChild(note);
+            },
+        };
+    })();
 
     function setSpinner(btnId, show) {
         const btn = document.getElementById(btnId);

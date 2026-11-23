@@ -225,7 +225,8 @@ const canvasBlob = (type, quality) => new Promise((resolve, reject) =>
 function fileStem() {
     const d = new Date(state.record.createdAt);
     const pad = (n) => String(n).padStart(2, '0');
-    return `Marquis_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    const part = state.record.parts > 1 ? `_part${pad(state.record.part)}of${pad(state.record.parts)}` : ''; // split full-page captures
+    return `Marquis_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}${part}`;
 }
 
 function saveBlob(blob, ext) {
