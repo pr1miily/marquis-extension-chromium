@@ -109,7 +109,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         qadevSection:           ['scripts/qadev.js'],
         cssInspectorSection:    ['scripts/css_inspector.js'],
         seoSection:             ['scripts/seo.js'],
-        scraperSection:         ['scripts/scraper.js'],
         buoSection:             ['scripts/bulk-url.js'],
         toolkitSection:         ['scripts/math.min.js', 'scripts/calculator.js', 'scripts/toolkitSection.js'],
         extractSection:         ['scripts/extractor.js'],

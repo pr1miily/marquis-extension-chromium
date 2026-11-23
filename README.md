@@ -25,7 +25,7 @@ modes (inline picker or a tools window), chosen in Settings.
 **Web & media tools**
 
 - QA Testing Hub and a Device Simulator
-- CSS Inspector, SEO Spider & Audit, Web Scraper
+- CSS Inspector, SEO Spider & Audit
 - Bulk URL Opener
 - Developer Toolkit (converters, calculator)
 - Text Extractor (OCR and PDF)
@@ -76,7 +76,7 @@ pass/fail summary:
 
 | Permission | Used for |
 |---|---|
-| `<all_urls>`, `tabs`, `scripting`, `activeTab` | Page tools (SEO, QA, scraper, highlighter, CSS inspector, capture) and the floating dock |
+| `<all_urls>`, `tabs`, `scripting`, `activeTab` | Page tools (SEO, QA, highlighter, CSS inspector, capture) and the floating dock |
 | `storage`, `unlimitedStorage` | Settings, boards, notes and workspaces; captures and recordings in IndexedDB |
 | `tabGroups`, `windows` | Workspace Manager |
 | `declarativeNetRequest` | Focus Mode site blocking and the Device Simulator |

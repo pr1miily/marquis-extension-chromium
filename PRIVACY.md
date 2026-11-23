@@ -34,7 +34,7 @@ These services are contacted only when you use the tool named, except the networ
 - **Network indicator**: while the popup is open it sends a small request to Cloudflare (*1.1.1.1*) every few
   seconds to measure your connection. No data of yours is included.
 
-Tools that read a web page (SEO, QA, scraper, highlighter, Meet attendance) do that work inside your browser.
+Tools that read a web page (SEO, QA, highlighter, Meet attendance) do that work inside your browser.
 After uninstalling, Chrome opens a short feedback page.
 
 ## 4. Analytics & Tracking

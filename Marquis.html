@@ -105,7 +105,6 @@
 									<option value="qadevSection" data-icon="bi bi-bug-fill" data-color="#f43f5e">QA Testing Hub</option>
 									<option value="cssInspectorSection" data-icon="bi bi-filetype-css" data-color="#d946ef">CSS Inspector</option>
 									<option value="seoSection" data-icon="bi bi-search-heart" data-color="#84cc16">SEO Spider & Audit</option>
-									<option value="scraperSection" data-icon="bi bi-robot" data-color="#10b981">Web Scraper</option>
 									<option value="buoSection" data-icon="bi bi-rocket-takeoff-fill" data-color="#06b6d4">Bulk URL Opener</option>
 									<option value="toolkitSection" data-icon="bi bi-tools" data-color="#8b5cf6">Developer Toolkit (Converters, Calc)</option>
 									<option value="extractSection" data-icon="bi bi-file-earmark-text" data-color="#334155">Text Extractor (OCR/PDF)</option>
@@ -1389,177 +1388,6 @@
 					</div>
 				</template>
 
-				<!-- Web scraper Section -->
-				<template id="tmpl_scraperSection" class="d-none">
-					<div class="card bg-body-tertiary shadow-sm mb-2 border">
-						
-						<div class="card-header mq-section-header">
-							<h6 class="mb-0 fw-bold">
-								<i class="bi bi-robot me-2"></i>Web Scraper
-							</h6>
-							<button class="mq-icon-btn favorite-star" data-section="scraperSection" title="Add to favorites">
-								<i class="bi bi-star text-warning"></i>
-							</button>
-						</div>
-
-						<div class="card-body">
-							
-							<div class="d-flex justify-content-center mb-3">
-								<ul class="nav nav-pills bg-body border rounded-pill p-1 shadow-sm" id="scraperTabs" role="tablist">
-									<li class="nav-item" role="presentation">
-										<button class="nav-link active rounded-pill px-3 fw-bold small" id="simple-scrape-tab" data-bs-toggle="tab" data-bs-target="#simpleScrapePanel" type="button" role="tab">
-											<i class="bi bi-lightning-charge-fill me-1"></i> Quick Extract
-										</button>
-									</li>
-									<li class="nav-item" role="presentation">
-										<button class="nav-link rounded-pill px-3 fw-bold small" id="adv-scrape-tab" data-bs-toggle="tab" data-bs-target="#advScrapePanel" type="button" role="tab">
-											<i class="bi bi-braces-asterisk me-1"></i> Advanced Setup
-										</button>
-									</li>
-								</ul>
-							</div>
-
-							<div class="tab-content">
-								
-								<div class="tab-pane fade show active" id="simpleScrapePanel">
-									<div class="alert alert-info border-0 bg-info-subtle text-info-emphasis small mb-3 shadow-sm">
-										<i class="bi bi-cpu-fill me-1" aria-hidden="true"></i> <strong>Content-Aware Engine:</strong> The Marquis will analyze the DOM structure to automatically extract complex datasets without requiring CSS selectors.
-									</div>
-									<div class="row g-2">
-										<div class="col-4">
-											<button class="btn btn-outline-primary w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="tables">
-												<div class="px-2 py-1 rounded bg-primary bg-opacity-10 text-primary flex-shrink-0"><i class="bi bi-table" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">HTML Tables</span>
-											</button>
-										</div>
-										<div class="col-4">
-											<button class="btn btn-outline-secondary w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="products">
-												<div class="px-2 py-1 rounded bg-success bg-opacity-10 text-success flex-shrink-0"><i class="bi bi-cart4" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">E-Commerce</span>
-											</button>
-										</div>
-										<div class="col-4">
-											<button class="btn btn-outline-secondary w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="articles">
-												<div class="px-2 py-1 rounded bg-warning bg-opacity-10 text-warning flex-shrink-0"><i class="bi bi-newspaper" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">Articles/Blogs</span>
-											</button>
-										</div>
-										<div class="col-4">
-											<button class="btn btn-outline-secondary w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="media">
-												<div class="px-2 py-1 rounded bg-info bg-opacity-10 text-info flex-shrink-0"><i class="bi bi-images" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">Media Assets</span>
-											</button>
-										</div>
-										<div class="col-4">
-											<button class="btn btn-outline-danger w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="contacts">
-												<div class="px-2 py-1 rounded bg-danger bg-opacity-10 text-danger flex-shrink-0"><i class="bi bi-person-lines-fill" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">Contact Info</span>
-											</button>
-										</div>
-										<div class="col-4">
-											<button class="btn btn-outline-secondary w-100 p-2 d-flex align-items-center gap-2 text-start scraper-smart-btn bg-body shadow-sm group-hover border-secondary-subtle" data-smart="links">
-												<div class="px-2 py-1 rounded bg-secondary bg-opacity-10 text-secondary flex-shrink-0"><i class="bi bi-link-45deg" aria-hidden="true"></i></div>
-												<span class="fw-bold small text-body">Deep Links</span>
-											</button>
-										</div>
-									</div>
-								</div>
-
-								<div class="tab-pane fade" id="advScrapePanel">
-									<div class="card bg-body border-secondary-subtle shadow-sm mb-3">
-										<div class="card-body">
-											<div class="mb-3">
-												<label class="form-label text-primary mb-2">1. Container Selector (Parent)</label>
-												<input type="text" id="advParentSelector" class="form-control font-monospace bg-body border-success rounded-pill shadow-sm px-3 fw-bold text-body" placeholder="e.g. div.product-card">
-												<small class="text-muted mt-1 d-block"><i class="bi bi-arrow-return-right"></i> This groups your data into individual rows.</small>
-											</div>
-
-											<label class="form-label text-success mb-2">2. Data Fields (Children)</label>
-											<div class="p-2 bg-body-tertiary border rounded mb-2">
-												<div id="advFieldsContainer" class="d-flex flex-column gap-2 mb-2">
-													<div class="input-group input-group-sm adv-field-row shadow-sm rounded-pill overflow-hidden border border-success">
-                                                        <span class="input-group-text bg-body border-0 text-success ps-3"><i class="bi bi-code-slash"></i></span>
-														<input type="text" class="form-control field-name bg-body border-0 shadow-none fw-bold px-2 text-body" placeholder="Col Name (e.g. Title)">
-                                                        <div class="vr bg-secondary opacity-25 my-1"></div>
-														<input type="text" class="form-control field-selector font-monospace bg-body border-0 shadow-none px-2 text-body" placeholder="Selector (e.g. h3.title)">
-                                                        <div class="vr bg-secondary opacity-25 my-1"></div>
-														<select class="form-select field-attr bg-body border-0 shadow-none fw-bold text-body" style="max-width: 90px; background-image: none;">
-															<option value="text">Text</option>
-															<option value="href">Href</option>
-															<option value="src">Src</option>
-															<option value="html">HTML</option>
-														</select>
-														<button class="btn btn-danger border-0 px-3 remove-field-btn" aria-label="Remove field" title="Remove field"><i class="bi bi-x-lg"></i></button>
-													</div>
-												</div>
-												<button id="addScraperFieldBtn" class="btn btn-sm btn-outline-secondary w-100 border-dashed fw-bold">
-													<i class="bi bi-plus-circle me-1"></i> Add Another Column
-												</button>
-											</div>
-
-											<button id="advScrapeRunBtn" class="btn btn-primary w-100 fw-bold shadow-sm">
-												<i class="bi bi-table me-2"></i> RUN EXTRACTION
-											</button>
-										</div>
-									</div>
-								</div>
-							</div>
-
-                            <div id="paginationToggleContainer" class="d-flex justify-content-between align-items-center p-2 bg-body-tertiary border border-secondary-subtle rounded shadow-sm mt-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="bg-primary bg-opacity-10 text-primary px-2 py-1 rounded"><i class="bi bi-files" aria-hidden="true"></i></div>
-                                    <div class="lh-sm">
-                                        <span class="fw-bold text-body d-block">Auto-Pagination (Deep Scrape)</span>
-                                        <small class="text-muted" style="font-size: var(--mq-fs-xs);">Silently follows "Next" links to scrape up to 5 pages in the background.</small>
-                                    </div>
-                                </div>
-                                <div class="form-check form-switch m-0 fs-5">
-                                    <input class="form-check-input shadow-none" type="checkbox" id="scraperPaginateToggle" style="cursor: pointer;">
-                                </div>
-                            </div>
-
-							<div id="scraperResultsArea" class="d-none mt-3 border-top pt-3 animate__animated animate__fadeIn">
-								
-								<div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary-subtle">
-									<div class="d-flex flex-column align-items-start gap-1">
-										<span class="badge bg-success fs-6 shadow-sm" id="scraperCount">0 Rows Found</span>
-										<span class="small text-muted fw-bold">Extracted Data</span>
-									</div>
-									
-									<div class="d-flex align-items-center bg-body-tertiary px-3 py-1 rounded border border-secondary-subtle shadow-sm" style="min-height: 38px;">
-										<button id="scraperCopyCsvBtn" class="btn btn-sm btn-link text-decoration-none text-secondary p-0 fw-bold d-flex align-items-center group-hover me-3" title="Copy CSV">
-											<i class="bi bi-clipboard me-1"></i> Copy
-										</button>
-										
-										<div class="vr bg-secondary opacity-25" style="width: 2px; min-height: 20px;"></div>
-										
-										<button id="scraperDownloadCsvBtn" class="btn btn-sm btn-link text-decoration-none text-success p-0 fw-bold d-flex align-items-center group-hover mx-3" title="Download CSV">
-											<i class="bi bi-download me-1"></i> CSV
-										</button>
-										
-										<div class="vr bg-secondary opacity-25" style="width: 2px; min-height: 20px;"></div>
-										
-										<button id="scraperClearBtn" class="btn btn-sm btn-link text-decoration-none text-danger p-0 fw-bold d-flex align-items-center group-hover ms-3" title="Clear">
-											<i class="bi bi-trash3 me-1"></i> Clear
-										</button>
-									</div>
-								</div>
-								
-								<div class="table-responsive border rounded bg-body shadow-sm" style="max-height: 250px;">
-									<table class="table table-sm table-hover table-striped small mb-0" id="scraperPreviewTable">
-										<thead class="table-light sticky-top shadow-sm">
-											<tr id="scraperTableHeader"></tr>
-										</thead>
-										<tbody id="scraperTableBody"></tbody>
-									</table>
-								</div>
-								<small class="text-muted d-block mt-2 fst-italic text-end">Previewing first 50 rows</small>
-							</div>
-
-						</div>
-					</div>
-				</template>
-		
 				<!--  BULK URL Section -->
 				<template id="tmpl_buoSection" class="d-none">
                     <div class="card bg-body-tertiary shadow-sm mb-2 border position-relative">
@@ -3802,7 +3630,7 @@
                         <li><strong>Support</strong>: the <em>ko-fi.com</em> page loads only when you open "A bowl of milk?".</li>
                         <li><strong>Network indicator</strong>: while the popup is open it sends a small request to Cloudflare (<em>1.1.1.1</em>) every few seconds to measure your connection. No data of yours is included.</li>
                     </ul>
-                    <p>Tools that read a web page (SEO, QA, scraper, highlighter, Meet attendance) do that work inside your browser. After uninstalling, Chrome opens a short feedback page.</p>
+                    <p>Tools that read a web page (SEO, QA, highlighter, Meet attendance) do that work inside your browser. After uninstalling, Chrome opens a short feedback page.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">4. Analytics & Tracking</h6>
                     <p>The Marquis employs no hidden trackers, no analytics engines, and no telemetry. Your workflow remains entirely undisturbed and unmonitored.</p>
@@ -3829,7 +3657,7 @@
                     <p>By invoking the services of The Marquis, you agree to be bound by these terms. If you find them disagreeable, you are respectfully asked to uninstall the extension.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">2. Proper Conduct</h6>
-                    <p>The Marquis is provided as a grand toolkit for productivity, development, and design. You agree to use these tools lawfully and ethically. Misuse of the web scraper, auto-clicker, or network tools to harass, overload, or maliciously target external servers is strictly forbidden.</p>
+                    <p>The Marquis is provided as a grand toolkit for productivity, development, and design. You agree to use these tools lawfully and ethically. Misuse of the auto-clicker or network tools to harass, overload, or maliciously target external servers is strictly forbidden.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">3. Disclaimer of Warranties</h6>
                     <p>This software is provided "as is," without warranty of any kind, express or implied. The Marquis shall not be held liable for lost data, unsaved notes, or workflow interruptions resulting from browser updates or extension removals.</p>
