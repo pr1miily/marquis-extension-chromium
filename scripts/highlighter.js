@@ -35,10 +35,12 @@ function initHighlighter() {
     // --- INITIALIZATION ---
     if (menuSelector) {
         menuSelector.addEventListener('change', () => {
-            if (menuSelector.value === 'highlighterSection') setTimeout(() => termInput.focus(), 100);
+            if (menuSelector.value !== 'highlighterSection') return;
+            syncFromPage();
+            setTimeout(() => termInput.focus(), 100);
         });
         // First open: init runs after the 'change' that opened this section, so that listener missed it.
-        if (menuSelector.value === 'highlighterSection') setTimeout(() => termInput.focus(), 100);
+        if (menuSelector.value === 'highlighterSection') { syncFromPage(); setTimeout(() => termInput.focus(), 100); }
     }
 
     if (termInput) {
@@ -131,7 +133,32 @@ function initHighlighter() {
         });
     }
 
+    // The keyword list lives with the page (window.__marquisHl in the extension's world on that tab, set by
+    // injectHighlighter), so the popup rebuilds it on every open instead of starting empty. Same scope as the
+    // highlights themselves: per tab, until the page reloads. A user edit made while this runs wins.
+    let editSeq = 0;
+    async function syncFromPage() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const seq = editSeq; // read after the first await: the first-open call runs before init declares editSeq
+            if (!tab || isRestrictedUrl(tab.url || '')) return;
+            const [res] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readHighlightState });
+            const state = res?.result;
+            if (!state || seq !== editSeq) return;
+            activeTerms = [...state.terms];
+            checkCase.checked = !!state.caseSensitive;
+            checkWhole.checked = !!state.wholeWord;
+            renderUI();
+            totalBadge.innerText = `${state.total} Matches`;
+            activeTerms.forEach((term, index) => {
+                const badge = document.getElementById(`count-${index}`);
+                if (badge) badge.innerText = state.counts?.[term] || 0;
+            });
+        } catch { /* page not scriptable or closed: keep the current list */ }
+    }
+
     async function updatePage() {
+        editSeq++;
         const caseSensitive = checkCase.checked;
         const wholeWord = checkWhole.checked;
 
@@ -224,6 +251,13 @@ function initHighlighter() {
         document.querySelectorAll('mark.odh-highlight').forEach(m => m.outerHTML = m.innerHTML);
         document.normalize();
         window.odhNavIndex = -1;
+        window.__marquisHl = null;
+    }
+
+    // Injected: the keyword state recorded with the page, and how many highlights are on it now.
+    function readHighlightState() {
+        const s = window.__marquisHl;
+        return s ? { ...s, total: document.querySelectorAll('mark.odh-highlight').length } : null;
     }
 
     function injectHighlighter(terms, palette, caseSensitive, wholeWord) {
@@ -300,6 +334,7 @@ function initHighlighter() {
         window.odhNavIndex = -1;
         if(!window.odhTermNav) window.odhTermNav = {};
 
+        window.__marquisHl = { terms, caseSensitive, wholeWord, counts, total }; // read back by readHighlightState
         return { total, counts };
     }
 
