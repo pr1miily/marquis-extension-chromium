@@ -1419,3 +1419,12 @@ body,
 @keyframes mq-flash { 25%, 75% { opacity: 0; } }
 @keyframes mq-swing { 20% { transform: rotate(15deg); } 40% { transform: rotate(-10deg); } 60% { transform: rotate(5deg); } 80% { transform: rotate(-5deg); } to { transform: none; } }
 @keyframes mq-rubber-band { 30% { transform: scale(1.25, 0.75); } 40% { transform: scale(0.75, 1.25); } 60% { transform: scale(1.15, 0.85); } to { transform: none; } }
+/* A field tinted with the warning colour (Multi-Highlighter): border and focus ring use the same theme warning
+   tone as its icon, so it no longer jumps from the accent ring to Bootstrap's fixed yellow. */
+.mq-field-warning { border-color: var(--mq-warning) !important; --mq-focus-ring: var(--mq-warning); }
+.mq-field-warning .btn-primary {   /* its action button (Add Keyword) takes the same colour */
+    --bs-btn-color: var(--mq-on-warning, #0f172a); --bs-btn-bg: var(--mq-warning); --bs-btn-border-color: var(--mq-warning);
+    --bs-btn-hover-color: var(--mq-on-warning, #0f172a); --bs-btn-hover-bg: color-mix(in srgb, var(--mq-warning) 85%, #000); --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--mq-on-warning, #0f172a); --bs-btn-active-bg: color-mix(in srgb, var(--mq-warning) 75%, #000); --bs-btn-active-border-color: transparent;
+}
+[data-marquis-theme="light"] .mq-field-warning { --mq-on-warning: #ffffff; } /* light theme warning is dark amber */
