@@ -239,7 +239,6 @@ function populateSeoUI(data) {
 
     // 1. Score & Metrics
     document.getElementById('seoScoreCard').classList.remove('d-none');
-    document.getElementById('seoScoreCard').className = "row g-3 mb-4 align-items-center bg-body p-3 rounded border border-secondary-subtle mx-0 shadow-sm animate__animated animate__fadeIn";
     
     setText('seoWordCountBadge', data.wordCount.toLocaleString());
     setText('seoTextRatio', `${data.textRatio}%`);
@@ -251,7 +250,7 @@ function populateSeoUI(data) {
     const critical = bySev('critical'), warnings = bySev('warning');
     setText('seoScoreValueDisplay', String(issues.length));
     const scoreEl = document.getElementById('seoScoreValueDisplay');
-    scoreEl.className = `mb-0 fw-bold ${critical ? 'text-danger' : warnings ? 'text-warning' : 'text-success'}`;
+    scoreEl.className = `seo-stat-value ${critical ? 'text-danger' : warnings ? 'text-warning' : 'text-success'}`;
     setText('seoIssueBreakdown', issues.length ? `${critical} critical · ${warnings} warning` : 'No issues');
     renderSeoChecks(issues, data.timing);
 

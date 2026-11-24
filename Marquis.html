@@ -522,18 +522,19 @@
 						</div>
 						
 						<div class="card-body">
-							<div id="seoScoreCard" class="d-none row g-2 mb-3 align-items-center bg-body p-2 rounded border border-secondary-subtle mx-0 shadow-sm">
-								<div class="col-4 border-end text-center">
-									<h2 class="mb-0 fw-bold" id="seoScoreValueDisplay">0</h2>
-									<small class="mq-overline" id="seoIssueBreakdown">Issues</small>
+							<!-- Compact summary strip (was a .row with gutters, whose negative margin pulled it over the header). -->
+							<div id="seoScoreCard" class="seo-stats d-none mb-2" aria-label="Page summary">
+								<div class="seo-stat">
+									<span class="seo-stat-value" id="seoScoreValueDisplay">0</span>
+									<span class="seo-stat-label" id="seoIssueBreakdown">Issues</span>
 								</div>
-								<div class="col-4 border-end text-center">
-									<h5 class="mb-0 fw-bold" id="seoWordCountBadge">0</h5>
-									<small class="mq-overline">Word Count</small>
+								<div class="seo-stat">
+									<span class="seo-stat-value" id="seoWordCountBadge">0</span>
+									<span class="seo-stat-label">Words</span>
 								</div>
-								<div class="col-4 text-center">
-									<h5 class="mb-0 fw-bold" id="seoTextRatio">0%</h5>
-									<small class="mq-overline">Text Ratio</small>
+								<div class="seo-stat">
+									<span class="seo-stat-value" id="seoTextRatio">0%</span>
+									<span class="seo-stat-label">Text ratio</span>
 								</div>
 							</div>
 
