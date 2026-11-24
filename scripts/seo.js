@@ -9,6 +9,13 @@ function initSeo() {
         if (btn) btn.addEventListener('click', handleSeoAction);
     });
 
+    // Whole-site crawl: seo_spider.html in its own tab (a popup would stop the crawl when it closes).
+    document.getElementById('crawlSiteBtn')?.addEventListener('click', async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const url = tab && /^https?:/i.test(tab.url || '') ? tab.url : '';
+        chrome.tabs.create({ url: chrome.runtime.getURL(`seo_spider.html${url ? `?url=${encodeURIComponent(url)}&start=1` : ''}`) });
+    });
+
     // --- CSP FIX: Handle Image Errors via JS instead of Inline HTML ---
     const googleIcon = document.getElementById('seoGoogleIcon');
     if (googleIcon) {
@@ -104,16 +111,33 @@ function extractPageDetails() {
     const host = window.location.hostname;
     const seenLinks = new Set();
     
+    // Internal means the same host (www ignored); the old test (URL contains the host anywhere) counted
+    // links like other.com/?ref=this-site.com as internal.
+    const bare = (h) => h.replace(/^www\./, '');
     document.querySelectorAll('a[href]').forEach(a => {
         if(a.href.startsWith('http')) {
             links.total++;
             if(!seenLinks.has(a.href)) {
                 seenLinks.add(a.href);
-                if(a.href.includes(host)) links.internal.push(a.href);
+                let linkHost = '';
+                try { linkHost = new URL(a.href).hostname; } catch (e) {}
+                if(bare(linkHost) === bare(host)) links.internal.push(a.href);
                 else links.external.push(a.href);
             }
         }
     });
+
+    // Timing the browser measured for this visit (Navigation and Resource Timing). Not Core Web Vitals.
+    const nav = performance.getEntriesByType('navigation')[0];
+    const resources = performance.getEntriesByType('resource');
+    const timing = {
+        nav: nav ? { ttfb: Math.round(nav.responseStart - nav.startTime), dcl: Math.round(nav.domContentLoadedEventEnd - nav.startTime),
+            load: Math.round(nav.loadEventEnd - nav.startTime), bytes: nav.transferSize || 0, type: nav.type } : null,
+        resources: resources.length,
+        resourceBytes: resources.reduce((s, r) => s + (r.transferSize || 0), 0),
+        blocking: resources.filter(r => r.renderBlockingStatus === 'blocking').map(r => r.name).slice(0, 10),
+        largest: resources.filter(r => r.transferSize).sort((a, b) => b.transferSize - a.transferSize).slice(0, 3).map(r => ({ url: r.name, bytes: r.transferSize }))
+    };
 
     // 4. Headings
     const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
@@ -135,9 +159,12 @@ function extractPageDetails() {
         domain: host,
         title: document.title,
         desc: getMeta('description'),
-        robots: getMeta('robots') || 'index, follow',
-        canonical: document.querySelector('link[rel="canonical"]')?.href || 'Missing',
-        lang: document.documentElement.lang || 'en',
+        // Missing values are reported as missing (they used to show as "index, follow" and "en").
+        robots: getMeta('robots') || 'Not set (search engines default to index, follow)',
+        canonical: document.querySelector('link[rel="canonical"]')?.href || 'Not set',
+        lang: document.documentElement.lang || '',
+        html: document.documentElement.outerHTML,
+        timing,
         ogTitle: getProp('og:title'),
         ogDesc: getProp('og:description'),
         ogImage: getProp('og:image'),
@@ -217,13 +244,16 @@ function populateSeoUI(data) {
     setText('seoWordCountBadge', data.wordCount.toLocaleString());
     setText('seoTextRatio', `${data.textRatio}%`);
 
-    let score = 100;
-    if(!data.title) score -= 20;
-    if(!data.desc) score -= 20;
-    if(!data.headings.some(h => h.tag === 'H1')) score -= 10;
-    if(data.images.some(i => !i.hasAlt)) score -= 10;
-    if(data.wordCount < 300) score -= 10;
-    setText('seoScoreValueDisplay', Math.max(0, score));
+    // Issues, not a score: the same checks the site crawler runs (scripts/seo_crawler.js), here on the rendered
+    // page. (The old "Health Score" was a made-up formula.)
+    const issues = auditRenderedPage(data);
+    const bySev = (s) => issues.filter(i => MarquisSeoCrawler.ISSUES[i.code].severity === s).length;
+    const critical = bySev('critical'), warnings = bySev('warning');
+    setText('seoScoreValueDisplay', String(issues.length));
+    const scoreEl = document.getElementById('seoScoreValueDisplay');
+    scoreEl.className = `mb-0 fw-bold ${critical ? 'text-danger' : warnings ? 'text-warning' : 'text-success'}`;
+    setText('seoIssueBreakdown', issues.length ? `${critical} critical · ${warnings} warning` : 'No issues');
+    renderSeoChecks(issues, data.timing);
 
     // 2. Overview
     setText('seoGoogleTitle', data.title || "Missing Title");
@@ -319,6 +349,39 @@ function populateSeoUI(data) {
     renderSeoImages('all');
 }
 
+// The crawler's page record for the rendered DOM of the current tab, then its page-level checks.
+function auditRenderedPage(data) {
+    const a = MarquisSeoCrawler.analyseHtml(data.html, data.url);
+    const robots = a.robotsMeta;
+    return MarquisSeoCrawler.pageIssues({
+        ...a, url: data.url, finalUrl: data.url, status: 200, html: true,
+        noindex: /\b(noindex|none)\b/.test(robots), nofollow: /\b(nofollow|none)\b/.test(robots), noindexSource: 'meta robots',
+        bytes: new Blob([data.html]).size
+    }).filter(i => !['slow', 'large_html'].includes(i.code)); // sizes of the rendered DOM are not what the server sent
+}
+
+function renderSeoChecks(issues, timing) {
+    const list = document.getElementById('seoChecksList');
+    if (!list) return;
+    const SEV = { critical: ['x-octagon-fill', 'danger', 0], warning: ['exclamation-triangle-fill', 'warning', 1], info: ['info-circle-fill', 'info', 2] };
+    const defs = MarquisSeoCrawler.ISSUES;
+    list.innerHTML = issues.length ? issues
+        .sort((a, b) => SEV[defs[a.code].severity][2] - SEV[defs[b.code].severity][2])
+        .map(i => {
+            const d = defs[i.code], [icon, tone] = SEV[d.severity];
+            return `<details class="seo-check"><summary><i class="bi bi-${icon} text-${tone} me-1" aria-label="${d.severity}"></i>${MarquisHtml.esc(d.title)}${i.detail ? ` <span class="text-muted">${MarquisHtml.esc(i.detail)}</span>` : ''}</summary>
+                <div class="small text-muted mt-1">${MarquisHtml.esc(d.why)} <span class="text-body">${MarquisHtml.esc(d.fix)}</span></div></details>`;
+        }).join('') : '<div class="text-success small text-center p-2"><i class="bi bi-check-circle-fill me-1"></i>No issues found on this page.</div>';
+    const t = document.getElementById('seoTiming');
+    if (!t) return;
+    if (!timing || !timing.nav) { t.textContent = 'Not available for this page.'; return; }
+    const kb = (b) => `${Math.round(b / 1024)} KB`;
+    const n = timing.nav;
+    t.innerHTML = `Server response ${n.ttfb} ms · DOM ready ${n.dcl} ms · fully loaded ${n.load > 0 ? `${n.load} ms` : '(still loading)'}${n.type === 'back_forward' || n.type === 'reload' ? ` (${n.type.replace('_', '/')})` : ''}<br>
+        ${timing.resources} resources${timing.resourceBytes ? `, ${kb(timing.resourceBytes)} transferred` : ''}${timing.blocking.length ? ` · ${timing.blocking.length} render-blocking` : ''}${timing.largest.length ? `<br>Largest: ${timing.largest.map(r => `${MarquisHtml.esc(r.url.split('/').pop().split('?')[0] || r.url)} (${kb(r.bytes)})`).join(', ')}` : ''}<br>
+        <span class="opacity-75">Measured by your browser for this visit (cache and extensions affect it; other-site files may report no size). These are not Core Web Vitals or Lighthouse scores.</span>`;
+}
+
 function renderSeoImages(filter) {
     if (!lastSeoData) return;
     
@@ -374,6 +437,13 @@ function clearSeoData() {
          const el = document.getElementById(id);
          if(el) el.innerText = '0';
      });
+
+    const checks = document.getElementById('seoChecksList');
+    if (checks) checks.innerHTML = '<div class="text-muted small text-center p-2">Audit a page to see its checks.</div>';
+    const timing = document.getElementById('seoTiming');
+    if (timing) timing.textContent = '-';
+    const breakdown = document.getElementById('seoIssueBreakdown');
+    if (breakdown) breakdown.textContent = 'Issues';
 
     lastSeoData = null;
     window.showGlobalAlert("Cleared", "SEO data has been cleared.", "info");

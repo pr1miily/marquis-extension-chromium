@@ -26,23 +26,18 @@ function initCssInspector() {
 
             isInspectorActive = !isInspectorActive;
             
-            // Apply bounce effect
-            btnToggleCssInspector.style.transform = 'scale(0.97)';
-            setTimeout(() => { btnToggleCssInspector.style.transform = 'scale(1)'; }, 150);
-            
+            // Theme accent while idle, danger while running (was a fixed purple / orange gradient in every theme).
+            btnToggleCssInspector.classList.toggle('btn-primary', !isInspectorActive);
+            btnToggleCssInspector.classList.toggle('btn-danger', isInspectorActive);
             if (isInspectorActive) {
-                // STOP MODE (Red/Orange Gradient)
-                btnToggleCssInspector.style.background = 'linear-gradient(135deg, #ef4444, #f97316)';
                 cssInspectorBtnText.innerText = "Stop Inspector";
                 cssInspectorSubText.innerText = "Click to turn off hover mode";
-                cssInspectorIcon.className = "bi bi-stop-circle-fill fs-5 text-white";
+                cssInspectorIcon.className = "bi bi-stop-circle-fill fs-5";
                 window.showGlobalAlert("Inspector Awakened", "I am watching. Pray, hover over the elements you wish to unveil.", "info");
             } else {
-                // START MODE (Purple/Pink Gradient)
-                btnToggleCssInspector.style.background = 'linear-gradient(135deg, #6366f1, #a855f7)';
                 cssInspectorBtnText.innerText = "Start Live Inspector";
                 cssInspectorSubText.innerText = "Hover to extract element styles";
-                cssInspectorIcon.className = "bi bi-magic fs-5 text-white";
+                cssInspectorIcon.className = "bi bi-magic fs-5";
             }
 
             chrome.scripting.executeScript({

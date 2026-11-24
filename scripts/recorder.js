@@ -259,9 +259,12 @@ async function finalize(s) {
         if (s.chunkError) throw s.chunkError;
         const id = await saveSession(s.id, { durationMs: Math.round(s.elapsedBefore), source: s.source });
         cleanup();
-        await showResult(await RecordingStore.get(id));
+        const saved = await RecordingStore.get(id);
+        await showResult(saved);
         transition('COMPLETED');
         renderHistory();
+        notifyIfAway({ id: `recording_${id}`, level: 'success', title: 'Recording saved',
+            message: `${formatDuration(saved?.durationMs || 0)} · ${formatSize(saved?.size || 0)}. Open the recorder to download it.` });
     } catch (err) {
         fail(`The recording could not be saved: ${err.message || err}. Its parts are kept; reopen the recorder to recover it.`);
     }
@@ -282,7 +285,15 @@ function onSourceEnded() {
     else if (state === 'READY') discard();
 }
 
+// Marquis notification (background.js notify) when the user is not looking at this window, e.g. sharing ended
+// from Chrome's "Stop sharing" bar while they work in another tab. In front, the window shows it already.
+function notifyIfAway(event) {
+    if (document.hasFocus()) return;
+    chrome.runtime.sendMessage({ action: 'notify', event: { source: 'capture', ...event } }).catch(() => {});
+}
+
 function fail(message) {
+    notifyIfAway({ level: 'error', title: 'Recording stopped', message });
     const s = session;
     if (s?.recorder && s.recorder.state !== 'inactive') {
         try { s.recorder.stop(); } catch { /* already stopping */ }

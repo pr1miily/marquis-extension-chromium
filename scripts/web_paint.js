@@ -12,10 +12,16 @@ function initWebPaint() {
                     return;
                 }
 
-                // Inject the painting engine
+                // Inject the painting engine with the popup's current theme tokens (resolved values), so its
+                // toolbar follows the active theme without a palette of its own.
+                const css = getComputedStyle(document.documentElement);
+                const theme = {};
+                ['--mq-surface', '--mq-text', '--mq-accent', '--mq-on-accent', '--mq-border-subtle']
+                    .forEach((k) => { const v = css.getPropertyValue(k).trim(); if (v) theme[k] = v; });
                 await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
-                    func: injectWebPaintEngine
+                    func: injectWebPaintEngine,
+                    args: [theme]
                 });
 
                 window.close(); 
@@ -39,13 +45,24 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // 🎨 INJECTED PAINT ENGINE (Runs inside the webpage)
 // ==========================================
-function injectWebPaintEngine() {
+// theme: the popup's resolved --mq-* tokens; every colour below falls back to the default theme's.
+function injectWebPaintEngine(theme = {}) {
     if (document.getElementById('odh-web-paint-root')) return;
 
     const root = document.createElement('div');
     root.id = 'odh-web-paint-root';
     root.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; pointer-events: none; font-family: system-ui, sans-serif;';
+    Object.entries(theme).forEach(([k, v]) => root.style.setProperty(k, v));
     document.body.appendChild(root);
+
+    // Bootstrap Icons glyphs from the font the background serves as bytes (as the dock does), so nothing loads a
+    // chrome-extension:// URL from the page. Without it the buttons keep their titles and labels.
+    chrome.runtime.sendMessage({ action: 'dockAssets' }).then((res) => {
+        if (!res || !res.ok) return;
+        const face = new FontFace('marquis-bi', Uint8Array.from(atob(res.font), (c) => c.charCodeAt(0)));
+        return face.load().then((f) => document.fonts.add(f));
+    }).catch(() => {});
+    const icon = (cp) => `<i aria-hidden="true" style="font-family: marquis-bi; font-style: normal; font-weight: normal; line-height: 1;">&#x${cp};</i>`;
 
     const canvas = document.createElement('canvas');
     canvas.width = window.innerWidth;
@@ -108,40 +125,47 @@ function injectWebPaintEngine() {
     });
 
     const toolbar = document.createElement('div');
-    toolbar.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 10px 20px; border-radius: 50px; display: flex; gap: 15px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: auto; border: 1px solid #334155; transition: all 0.2s;';
+    toolbar.style.cssText = 'position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--mq-surface, #1e293b); color: var(--mq-text, #f8fafc); padding: 10px 20px; border-radius: 50px; display: flex; gap: 15px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: auto; border: 1px solid var(--mq-border-subtle, #334155);';
     root.appendChild(toolbar);
 
-    const createBtn = (icon, title, onClick) => {
+    // Idle: transparent; hover: a tint of the text colour; active tool: accent fill with its own text colour.
+    const paint = (btn, hover) => {
+        const active = btn.dataset.active === 'true';
+        btn.style.background = active ? 'var(--mq-accent, #3b82f6)' : hover ? 'color-mix(in srgb, currentColor 16%, transparent)' : 'transparent';
+        btn.style.color = active ? 'var(--mq-on-accent, #0f172a)' : 'inherit';
+    };
+    const createBtn = (cp, title, onClick) => {
         const btn = document.createElement('button');
-        btn.innerHTML = icon;
+        btn.innerHTML = icon(cp);
         btn.title = title;
-        btn.style.cssText = 'background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: white;';
-        btn.onmouseover = () => btn.style.background = '#334155';
-        btn.onmouseout = () => btn.style.background = btn.dataset.active === 'true' ? '#3b82f6' : 'transparent';
+        btn.setAttribute('aria-label', title);
+        btn.style.cssText = 'background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s; color: inherit;';
+        btn.onmouseover = () => paint(btn, true);
+        btn.onmouseout = () => paint(btn, false);
         btn.onclick = () => onClick(btn);
         return btn;
     };
 
     let buttons = [];
 
-    const pointerBtn = createBtn('🖱️', 'Pointer (Scroll/Click)', (btn) => {
+    const pointerBtn = createBtn('f2e1', 'Pointer (Scroll/Click)', (btn) => {
         currentTool = 'pointer';
         canvas.style.pointerEvents = 'none'; 
         updateActiveState(btn);
     });
     toolbar.appendChild(pointerBtn);
 
-    const brushBtn = createBtn('🖌️', 'Brush', (btn) => {
+    const brushBtn = createBtn('f1d7', 'Brush', (btn) => {
         currentTool = 'brush';
-        canvas.style.pointerEvents = 'auto'; 
+        canvas.style.pointerEvents = 'auto';
         canvas.style.cursor = 'crosshair';
         updateActiveState(btn);
     });
     brushBtn.dataset.active = 'true';
-    brushBtn.style.background = '#3b82f6';
+    paint(brushBtn, false);
     toolbar.appendChild(brushBtn);
 
-    const eraserBtn = createBtn('🧽', 'Eraser', (btn) => {
+    const eraserBtn = createBtn('f330', 'Eraser', (btn) => {
         currentTool = 'eraser';
         canvas.style.pointerEvents = 'auto';
         canvas.style.cursor = 'cell';
@@ -152,16 +176,13 @@ function injectWebPaintEngine() {
     buttons = [pointerBtn, brushBtn, eraserBtn];
 
     function updateActiveState(activeBtn) {
-        buttons.forEach(b => {
-            b.dataset.active = 'false';
-            b.style.background = 'transparent';
-        });
+        buttons.forEach(b => { b.dataset.active = 'false'; paint(b, false); });
         activeBtn.dataset.active = 'true';
-        activeBtn.style.background = '#3b82f6';
+        paint(activeBtn, false);
     }
 
     const divider = document.createElement('div');
-    divider.style.cssText = 'width: 2px; height: 25px; background: #475569; border-radius: 2px;';
+    divider.style.cssText = 'width: 2px; height: 25px; background: var(--mq-border-subtle, #475569); border-radius: 2px;';
     toolbar.appendChild(divider);
 
     const colorPicker = document.createElement('input');
@@ -181,19 +202,21 @@ function injectWebPaintEngine() {
     sizeSlider.max = '30';
     sizeSlider.value = brushSize;
     sizeSlider.title = "Brush Size";
-    sizeSlider.style.cssText = 'width: 80px; accent-color: #3b82f6; cursor: pointer;';
+    sizeSlider.style.cssText = 'width: 80px; accent-color: var(--mq-accent, #3b82f6); cursor: pointer;';
     sizeSlider.oninput = (e) => brushSize = e.target.value;
     toolbar.appendChild(sizeSlider);
 
-    const clearBtn = createBtn('🗑️', 'Clear All', () => {
+    const clearBtn = createBtn('f78b', 'Clear All', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
     toolbar.appendChild(clearBtn);
 
-    const quitBtn = createBtn('❌', 'Exit Web Paint', () => {
+    // Exit keeps its semantic red fill (a destructive action) in every theme.
+    const quitBtn = createBtn('f659', 'Exit Web Paint', () => {
         root.remove();
     });
     quitBtn.style.marginLeft = '10px';
+    quitBtn.style.color = '#ffffff';
     quitBtn.style.background = '#ef4444';
     quitBtn.onmouseover = () => quitBtn.style.background = '#dc2626';
     quitBtn.onmouseout = () => quitBtn.style.background = '#ef4444';

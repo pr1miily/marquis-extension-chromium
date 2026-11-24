@@ -17,7 +17,6 @@ function initKanban() {
         ]);
         // Date badges are computed while rendering, so newly overdue cards show as overdue.
         renderBoard(board.columns);
-        countAndSyncOverdueBadges();
 
         if (res.kanbanRules) {
             automationRules = res.kanbanRules;
@@ -132,10 +131,10 @@ function initKanban() {
         </div>`;
 
     const CHECKLIST_ITEM_TEMPLATE = `
-        <li class="list-group-item bg-transparent px-3 py-2 mb-1 d-flex align-items-center gap-2 border-0 group-hover rounded-3">
-            <input class="form-check-input checklist-toggle m-0 shadow-sm border-secondary-subtle flex-shrink-0" type="checkbox" style="cursor: pointer; transform: scale(1.2);">
+        <li class="list-group-item kb-check-item bg-transparent px-2 py-1 d-flex align-items-center gap-2 border-0 rounded-2">
+            <input class="form-check-input checklist-toggle m-0 shadow-sm border-secondary-subtle flex-shrink-0" type="checkbox" style="cursor: pointer;" aria-label="Done">
             <span class="flex-grow-1 text-body fw-medium lh-sm"></span>
-            <button class="btn btn-sm btn-link text-danger p-1 checklist-del opacity-50 flex-shrink-0" style="line-height: 1; transition: opacity 0.2s;" onmouseover="this.classList.remove('opacity-50')" onmouseout="this.classList.add('opacity-50')"><i class="bi bi-x-lg fs-6"></i></button>
+            <button class="btn btn-sm btn-link text-danger p-1 checklist-del flex-shrink-0" style="line-height: 1;" aria-label="Remove item"><i class="bi bi-x-lg"></i></button>
         </li>`;
 
     function fromTemplate(html) {
@@ -218,9 +217,6 @@ function initKanban() {
             };
         });
         KanbanStore.save(columns);
-
-        // 🟢 SYNC BADGES ON EVERY SAVE
-        countAndSyncOverdueBadges();
     }
 
     function updateColumnCounts() {
@@ -230,113 +226,6 @@ function initKanban() {
             if(colContainer && countBadge) countBadge.innerText = colContainer.children.length;
         });
     }
-
-    // 🟢 Calculate Overdue Tasks and Inject into Generic Modal
-    function countAndSyncOverdueBadges() {
-        const notifList = document.getElementById('globalNotifList');
-        const emptyState = document.getElementById('notifEmptyState');
-
-        // 1. Remove ONLY Kanban notifications to prepare for a fresh render
-        if (notifList) {
-            notifList.querySelectorAll('.notif-item[data-source="kanban"]').forEach(el => el.remove());
-        }
-
-        let overdueCount = 0;
-        
-        document.querySelectorAll('.trello-card').forEach(card => {
-            const isCompleted = card.querySelector('.card-quick-complete')?.checked;
-            const dateBadge = card.querySelector('.indicator-date');
-            const isOverdue = dateBadge && dateBadge.classList.contains('bg-danger') && !dateBadge.classList.contains('d-none');
-            
-            if (!isCompleted && isOverdue) {
-                overdueCount++;
-                const title = card.querySelector('.card-title-text').innerText;
-                
-                // 2. Inject modular notification items (Now entirely clickable with hover effects)
-                if (notifList) {
-                    const notifHtml = `
-                        <div class="notif-item p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 shadow-sm text-start go-to-kanban-btn btn-lift-hover" 
-                            data-source="kanban" 
-                            data-bs-dismiss="modal" 
-                            style="cursor: pointer; transition: all 0.2s ease;"
-                            onmouseover="this.classList.replace('bg-opacity-10', 'bg-opacity-25'); this.querySelector('.bi-chevron-right').style.transform='translateX(4px)';"
-                            onmouseout="this.classList.replace('bg-opacity-25', 'bg-opacity-10'); this.querySelector('.bi-chevron-right').style.transform='translateX(0)';">
-                            
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="badge bg-danger text-white shadow-sm"><i class="bi bi-kanban me-1"></i>Kanban Overdue</span>
-                                <i class="bi bi-chevron-right text-danger fw-bold" style="transition: transform 0.2s ease;"></i>
-                            </div>
-                            <h6 class="fw-bold text-danger-emphasis mb-0 mt-2" style="font-size: var(--mq-fs-sm);">${esc(title)}</h6>
-                            
-                        </div>
-                    `;
-                    notifList.insertAdjacentHTML('beforeend', notifHtml);
-                }
-            }
-        });
-
-        // 3. Re-evaluate Total Notifications & Empty State
-        let totalNotifs = 0;
-        if (notifList) {
-            totalNotifs = notifList.querySelectorAll('.notif-item').length;
-            if (totalNotifs > 0) {
-                emptyState?.classList.add('d-none');
-            } else {
-                emptyState?.classList.remove('d-none');
-            }
-        }
-
-        // 4. Update Global Bell Icon Badge
-        const notifBadge = document.getElementById('notifBadge');
-        const notifIcon = document.getElementById('notifIcon');
-        const notifContainer = document.getElementById('notifContainer');
-
-        if (notifBadge && notifIcon) {
-            if (totalNotifs > 0) {
-                notifBadge.innerText = totalNotifs;
-                notifBadge.classList.remove('d-none');
-                notifIcon.classList.replace('text-secondary', 'text-danger');
-                notifIcon.classList.add('animate__animated', 'animate__swing');
-                if (notifContainer) notifContainer.title = `${totalNotifs} Notification(s)`;
-            } else {
-                notifBadge.classList.add('d-none');
-                notifIcon.classList.replace('text-danger', 'text-secondary');
-                notifIcon.classList.remove('animate__animated', 'animate__swing');
-                if (notifContainer) notifContainer.title = `Notifications`;
-            }
-        }
-
-        // 5. Update Chrome Extension Icon
-        if (typeof chrome !== 'undefined' && chrome.action) {
-            if (overdueCount > 0) {
-                chrome.action.setBadgeText({ text: overdueCount.toString() });
-                chrome.action.setBadgeBackgroundColor({ color: '#ef4444' }); 
-            } else {
-                chrome.action.setBadgeText({ text: '' }); 
-            }
-        }
-
-        // 6. Attach dynamic listeners to the new "View" buttons
-        document.querySelectorAll('.go-to-kanban-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const menuSel = document.getElementById("menuSelector");
-                if (menuSel && menuSel.value !== "kanbanSection") {
-                    menuSel.value = "kanbanSection";
-                    menuSel.dispatchEvent(new Event('change'));
-                }
-            });
-        });
-    }
-
-    // ==========================================
-    // 🟢 NAVBAR BELL CLICK ROUTING
-    // ==========================================
-    document.getElementById('notifContainer')?.addEventListener('click', () => {
-        const notifModalEl = document.getElementById('notificationsModal');
-        if (notifModalEl) {
-            bootstrap.Modal.getOrCreateInstance(notifModalEl).show();
-        }
-    });
 
     // ==========================================
     // 🟢 DATE, TIME, & ALARM LOGIC
@@ -476,21 +365,9 @@ function initKanban() {
                 if (cardId) {
                     chrome.alarms.clear(`kanban_due_${cardId}`);
                     
-                    // 🟢 NEW: Clear the specific task from the Notification Center
-                    chrome.storage.local.get(['marquisNotifications', 'unreadNotifCount'], (res) => {
-                        if (res.marquisNotifications) {
-                            const cleanedNotifs = res.marquisNotifications.filter(n => !(n.source === 'kanban' && n.message.includes(titleEl.innerText)));
-                            
-                            // Adjust the unread badge count if we deleted an unread notification
-                            const deletedUnreadCount = res.marquisNotifications.filter(n => !n.isRead && n.source === 'kanban' && n.message.includes(titleEl.innerText)).length;
-                            const newUnreadCount = Math.max(0, (res.unreadNotifCount || 0) - deletedUnreadCount);
-
-                            chrome.storage.local.set({ 
-                                marquisNotifications: cleanedNotifs,
-                                unreadNotifCount: newUnreadCount
-                            });
-                        }
-                    });
+                    // A done card needs no due notice: background.js drops its entry (and pop-up) by id, and older
+                    // entries that only named the card in their text.
+                    chrome.runtime.sendMessage({ action: 'notifyDismiss', id: `kanban_due_${cardId}`, source: 'kanban', text: titleEl.innerText }).catch(() => {});
                 }
                 
                 // 🟢 Force the date badge to turn green instantly
@@ -657,12 +534,10 @@ function initKanban() {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            document.querySelectorAll('.custom-color-pick').forEach(b => {
-                b.style.borderWidth = '1px';
-                b.style.borderColor = 'var(--bs-border-color)';
-            });
-            e.currentTarget.style.borderWidth = '2px';
-            e.currentTarget.style.borderColor = '#fff';
+            // The swatches' .border utility is !important, so the selection ring must be too (a plain inline
+            // white ring never showed); it uses the theme's text colour so it reads on light and dark themes.
+            document.querySelectorAll('.custom-color-pick').forEach(b => b.style.removeProperty('border'));
+            e.currentTarget.style.setProperty('border', '2px solid var(--mq-text)', 'important');
             selectedCustomColor = e.currentTarget.getAttribute('data-color');
         });
     });
@@ -718,15 +593,13 @@ function initKanban() {
             document.getElementById('editKanbanCardDesc').value = desc;
             document.getElementById('kanbanChecklistInput').value = '';
 
+            // The cover is a strip above the header; the close button sits in the header, so it keeps its theme colour.
             const headerCover = document.getElementById('editModalCover');
-            const closeBtn = document.getElementById('editModalCloseBtn');
             if(currentCover !== 'none') {
                 headerCover.style.backgroundColor = currentCover;
                 headerCover.classList.remove('d-none');
-                closeBtn.classList.add('btn-close-white');
             } else {
                 headerCover.classList.add('d-none');
-                closeBtn.classList.remove('btn-close-white');
             }
 
             document.getElementById('editKanbanChecklistArea').innerHTML = checklistData;
@@ -772,14 +645,11 @@ function initKanban() {
             currentEditCard.setAttribute('data-cover', color);
             
             const headerCover = document.getElementById('editModalCover');
-            const closeBtn = document.getElementById('editModalCloseBtn');
             if(color !== 'none') {
                 headerCover.style.backgroundColor = color;
                 headerCover.classList.remove('d-none');
-                closeBtn.classList.add('btn-close-white');
             } else {
                 headerCover.classList.add('d-none');
-                closeBtn.classList.remove('btn-close-white');
             }
         });
     });

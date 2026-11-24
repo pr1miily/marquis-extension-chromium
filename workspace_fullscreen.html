@@ -11,8 +11,9 @@
     <script src="scripts/theme_sync.js"></script>
     <style>
         /* Workspace cards lift on hover; colours come from the theme tokens in main.css. */
-        .workspace-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
-        .workspace-card:hover { transform: translateY(-2px); box-shadow: var(--mq-shadow-2) !important; border-color: var(--mq-accent) !important; }
+        /* Hover: deeper shadow and accent border; the card stays in place. */
+        .workspace-card { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+        .workspace-card:hover { box-shadow: var(--mq-shadow-2) !important; border-color: var(--mq-accent) !important; }
         .workspace-card .card-header { background-color: transparent !important; }
         .workspace-card .collapse .card-body { background-color: var(--mq-sunken) !important; }
 </style>

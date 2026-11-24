@@ -292,13 +292,13 @@
                 transform-origin: center center !important;
             }
             
-            #launcher:hover { 
-                transform: scale(1.05) translateZ(0) !important; 
+            /* Hover and press show an accent ring around the launcher; it no longer grows or shrinks. */
+            #launcher:hover {
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 0 3px color-mix(in srgb, var(--icon-hover-color) 45%, transparent) !important;
             }
-            
-            #launcher:active { 
-                cursor: grabbing !important; 
-                transform: scale(0.95) translateZ(0) !important; 
+
+            #launcher:active {
+                cursor: grabbing !important;
             }
             
             .logo-img { 
@@ -424,7 +424,7 @@
             }
             
             .layout-sel-btn { transition: all 0.2s; }
-            .layout-sel-btn:hover { background: var(--mq-surface-2) !important; color: white !important; }
+            .layout-sel-btn:hover { background: var(--mq-surface-2) !important; color: var(--mq-text) !important; }
             .layout-sel-btn.active { background: var(--icon-hover-bg) !important; border-color: var(--icon-hover-color) !important; color: var(--icon-hover-color) !important; box-shadow: 0 0 10px color-mix(in srgb, var(--icon-hover-color) 30%, transparent); }
 
             /* 🟢 UNIFIED WIDGET CSS */
@@ -466,10 +466,11 @@
             .sn-cmd:last-child { border-right: none; }
             .sn-cmd:hover { background: var(--icon-hover-bg); color: var(--icon-hover-color); }
             #sn-color-palette, #sn-emoji-picker { background: rgba(0,0,0,0.1); border-bottom: 1px solid var(--border-base); padding: 10px; display: none; gap: 10px; flex-wrap: wrap; justify-content: center; }
-            .sn-color-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(0,0,0,0.1); transition: transform 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-            .sn-color-swatch:hover { transform: scale(1.2); border-color: var(--border-base); }
-            .sn-emoji { cursor: pointer; font-size: 18px; transition: transform 0.1s; }
-            .sn-emoji:hover { transform: scale(1.2); }
+            /* Hover marks a swatch or emoji with a ring/tint in place (they used to grow). */
+            .sn-color-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(0,0,0,0.1); transition: border-color 0.1s, box-shadow 0.1s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+            .sn-color-swatch:hover { border-color: var(--border-base); box-shadow: 0 0 0 2px var(--icon-hover-color); }
+            .sn-emoji { cursor: pointer; font-size: 18px; border-radius: 6px; transition: background-color 0.1s; }
+            .sn-emoji:hover { background-color: var(--icon-hover-bg); }
             #sn-image-preview-container { display: none; padding: 12px; background: rgba(0,0,0,0.05); border-bottom: 1px solid var(--border-base); position: relative; align-items: center; justify-content: center; }
             #sn-image-preview { max-height: 120px; max-width: 100%; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
             #sn-remove-image { position: absolute; top: 18px; right: 18px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -559,8 +560,8 @@
             .hl-input { flex-grow: 1; background: transparent; border: 1px solid var(--border-base); color: var(--icon-base); border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
             .hl-input:focus { border-color: var(--icon-hover-color); }
             .hl-chip-container { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; max-height: 150px; overflow-y: auto; }
-            .hl-chip { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; color: #000; cursor: pointer; user-select: none; transition: transform 0.1s; }
-            .hl-chip:active { transform: scale(0.95); }
+            .hl-chip { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; color: #000; cursor: pointer; user-select: none; transition: filter 0.1s; }
+            .hl-chip:active { filter: brightness(0.9); }
             .hl-chip-close { background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #000; font-size: 12px; transition: background 0.2s; }
             .hl-chip-close:hover { background: rgba(0,0,0,0.4); color: white; }
             .hl-controls { padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-base); background: rgba(0,0,0,0.1); font-size: 12px; color: var(--icon-base); }
@@ -593,8 +594,8 @@
             /* CALCULATOR WIDGET SPECIFIC */
             .calc-btn { background: rgba(0,0,0,0.1); border: 1px solid var(--border-base); color: var(--icon-base); font-size: 16px; font-weight: bold; padding: 8px 0; justify-content: center; border-radius: 8px; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; user-select: none; }
             .calc-btn:hover { background: var(--icon-hover-bg); color: var(--icon-hover-color); border-color: var(--icon-hover-color); }
-            .calc-btn:active, .calc-btn.active { transform: scale(0.95); background: var(--icon-hover-color); color: var(--bg-base); }
-            .calc-btn-primary { color: var(--mq-accent); border-color: rgba(59, 130, 246, 0.3); }
+            .calc-btn:active, .calc-btn.active { background: var(--icon-hover-color); color: var(--bg-base); }
+            .calc-btn-primary { color: var(--mq-accent); border-color: color-mix(in srgb, var(--mq-accent) 30%, transparent); }
             .calc-btn-danger { color: var(--mq-danger); border-color: rgba(239, 68, 68, 0.3); }
             .calc-btn-info { color: var(--mq-success); border-color: rgba(16, 185, 129, 0.3); }
             .calc-btn-success { background: rgba(16, 185, 129, 0.1); color: var(--mq-success); border-color: #10b981; }
@@ -2728,16 +2729,19 @@
                 // 3. Create the floating toolbar
                 toolbar = document.createElement('div');
                 toolbar.id = 'odh-qa-paint-toolbar';
-                toolbar.style.cssText = 'position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2147483646; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 50px; display: flex; gap: 15px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);';
+                // The toolbar sits in the page, outside the shadow root: copy the dock theme's resolved tokens onto it.
+                const hostCss = getComputedStyle(dockRoot);
+                ['--mq-surface', '--mq-text', '--mq-accent', '--mq-danger'].forEach((k) => toolbar.style.setProperty(k, hostCss.getPropertyValue(k).trim()));
+                toolbar.style.cssText += 'position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2147483646; background: color-mix(in srgb, var(--mq-surface, #0f172a) 95%, transparent); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 50px; display: flex; gap: 15px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);';
                 
                 toolbar.innerHTML = `
-                    <div style="color: white; font-family: sans-serif; font-size: 12px; font-weight: bold; letter-spacing: 0.5px;">WEB PAINT</div>
-                    <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.2);"></div>
+                    <div style="color: var(--mq-text, white); font-family: sans-serif; font-size: 12px; font-weight: bold; letter-spacing: 0.5px;">WEB PAINT</div>
+                    <div style="width: 1px; height: 16px; background: color-mix(in srgb, var(--mq-text, white) 20%, transparent);"></div>
                     <input type="color" id="odh-qa-paint-color" value="#ef4444" style="width: 26px; height: 26px; padding: 0; border: none; border-radius: 50%; cursor: pointer; background: transparent;" title="Brush Color">
-                    <input type="range" id="odh-qa-paint-size" min="2" max="30" value="4" style="width: 80px; accent-color: #3b82f6; cursor: pointer;" title="Brush Size">
-                    <button id="odh-qa-paint-clear" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; transition: transform 0.1s;" title="Clear Canvas" aria-label="Clear canvas">${pageIco('trash3')}</button>
-                    <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.2);"></div>
-                    <button id="odh-qa-paint-close" style="background: none; border: none; color: var(--mq-danger); font-size: 18px; cursor: pointer; transition: transform 0.1s;" title="Exit Paint" aria-label="Exit paint">${pageIco('x-circle')}</button>
+                    <input type="range" id="odh-qa-paint-size" min="2" max="30" value="4" style="width: 80px; accent-color: var(--mq-accent, #3b82f6); cursor: pointer;" title="Brush Size">
+                    <button id="odh-qa-paint-clear" style="background: none; border: none; color: var(--mq-text, white); font-size: 18px; cursor: pointer; transition: opacity 0.1s;" title="Clear Canvas" aria-label="Clear canvas">${pageIco('trash3')}</button>
+                    <div style="width: 1px; height: 16px; background: color-mix(in srgb, var(--mq-text, white) 20%, transparent);"></div>
+                    <button id="odh-qa-paint-close" style="background: none; border: none; color: var(--mq-danger); font-size: 18px; cursor: pointer; transition: opacity 0.1s;" title="Exit Paint" aria-label="Exit paint">${pageIco('x-circle')}</button>
                 `;
                 document.body.appendChild(toolbar);
 
@@ -2747,8 +2751,10 @@
                 
                 const btnClear = document.getElementById('odh-qa-paint-clear');
                 btnClear.addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
-                btnClear.addEventListener('mousedown', () => btnClear.style.transform = 'scale(0.9)');
-                btnClear.addEventListener('mouseup', () => btnClear.style.transform = 'scale(1)');
+                // Press feedback dims the button in place (it used to shrink).
+                btnClear.addEventListener('mousedown', () => btnClear.style.opacity = '0.6');
+                btnClear.addEventListener('mouseup', () => btnClear.style.opacity = '');
+                btnClear.addEventListener('mouseleave', () => btnClear.style.opacity = '');
 
                 const btnClose = document.getElementById('odh-qa-paint-close');
                 btnClose.addEventListener('click', () => {
@@ -2758,8 +2764,9 @@
                     const toggle = shadow.querySelector('#qa-mini-paint');
                     if(toggle) toggle.checked = false;
                 });
-                btnClose.addEventListener('mousedown', () => btnClose.style.transform = 'scale(0.9)');
-                btnClose.addEventListener('mouseup', () => btnClose.style.transform = 'scale(1)');
+                btnClose.addEventListener('mousedown', () => btnClose.style.opacity = '0.6');
+                btnClose.addEventListener('mouseup', () => btnClose.style.opacity = '');
+                btnClose.addEventListener('mouseleave', () => btnClose.style.opacity = '');
             }
         });
 

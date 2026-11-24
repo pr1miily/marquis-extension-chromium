@@ -116,10 +116,6 @@ function initHighlighter() {
 
             chip.addEventListener('click', (e) => {
                 if(e.target.closest('.hl-chip-close')) return;
-                
-                chip.style.transform = 'scale(0.95)';
-                setTimeout(() => chip.style.transform = 'scale(1)', 100);
-                
                 jumpToSpecific(term);
             });
 

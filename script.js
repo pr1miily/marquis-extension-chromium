@@ -108,8 +108,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         meetAttendanceSection:  ['scripts/meet_attendance.js'],
         qadevSection:           ['scripts/qadev.js'],
         cssInspectorSection:    ['scripts/css_inspector.js'],
-        seoSection:             ['scripts/seo.js'],
-        buoSection:             ['scripts/bulk-url.js'],
+        seoSection:             ['scripts/seo_crawler.js', 'scripts/seo.js'],
+        buoSection:             ['scripts/url_list.js', 'scripts/bulk-url.js'],
         toolkitSection:         ['scripts/math.min.js', 'scripts/calculator.js', 'scripts/toolkitSection.js'],
         extractSection:         ['scripts/extractor.js'],
         highlighterSection:     ['scripts/highlighter.js'],
@@ -121,6 +121,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     // src -> load promise. Classic scripts must run once: a second run would redeclare
     // their top-level const/let and throw.
     const scriptLoads = new Map();
+    // Scripts the page already loads with a tag (kanban_store.js, for the Notifications panel) count as loaded.
+    document.querySelectorAll('script[src]').forEach(s => scriptLoads.set(s.getAttribute('src'), Promise.resolve()));
 
     function loadScript(src) {
         if (!scriptLoads.has(src)) {

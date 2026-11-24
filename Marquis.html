@@ -337,22 +337,8 @@
 					</div>
 				</template>
 
-				<!-- Sticky Notes -->
-				<style>
-					#taskDescInput:empty:before { content: "Add detailed notes, links, or context here..."; color: #6c757d; pointer-events: none; display: block; }
-					.task-card-active { background-color: var(--bs-primary-bg-subtle) !important; border-color: var(--bs-primary) !important; }
-					
-					/* 🟢 Dynamic Active State for Toolbar Buttons */
-					.task-cmd, .sn-cmd { color: var(--bs-body-color); background-color: transparent; transition: all 0.15s ease; }
-					.task-cmd:hover, .sn-cmd:hover { background-color: var(--bs-secondary-bg); }
-					.task-cmd.active, .sn-cmd.active { background-color: var(--bs-primary) !important; color: #fff !important; border-color: var(--bs-primary) !important; }
-				</style>
-
+				<!-- Sticky Notes (toolbar and description styles live in styles/main.css) -->
 				<template id="tmpl_stickyNotesSection" class="d-none">
-					<style>
-						#taskDescInput:empty:before { content: "Add detailed notes, links, or context here..."; color: #6c757d; pointer-events: none; display: block; }
-						.task-card-active { background-color: var(--bs-primary-bg-subtle) !important; border-color: var(--bs-primary) !important; }
-					</style>
 
 					<div class="card bg-body-tertiary shadow-sm mb-2 border">
 						
@@ -538,8 +524,8 @@
 						<div class="card-body">
 							<div id="seoScoreCard" class="d-none row g-2 mb-3 align-items-center bg-body p-2 rounded border border-secondary-subtle mx-0 shadow-sm">
 								<div class="col-4 border-end text-center">
-									<h2 class="mb-0 fw-bold text-primary" id="seoScoreValueDisplay">0</h2>
-									<small class="mq-overline">Health Score</small>
+									<h2 class="mb-0 fw-bold" id="seoScoreValueDisplay">0</h2>
+									<small class="mq-overline" id="seoIssueBreakdown">Issues</small>
 								</div>
 								<div class="col-4 border-end text-center">
 									<h5 class="mb-0 fw-bold" id="seoWordCountBadge">0</h5>
@@ -552,6 +538,7 @@
 							</div>
 
 							<ul class="nav nav-tabs nav-fill small fw-bold mb-0" id="seoTabs" role="tablist">
+								<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#seoChecks">CHECKS</a></li>
 								<li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#seoOverview">PREVIEW</a></li>
 								<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#seoHeadings">HEADINGS</a></li>
 								<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#seoImages">IMAGES</a></li>
@@ -560,6 +547,13 @@
 							</ul>
 
 							<div class="tab-content p-2 border border-top-0 rounded-bottom bg-body mb-2" style="min-height: 300px;">
+
+								<div id="seoChecks" class="tab-pane fade">
+									<!-- Same checks as the site crawler (scripts/seo_crawler.js), run on this tab's rendered page. -->
+									<div id="seoChecksList" class="d-flex flex-column gap-1"><div class="text-muted small text-center p-2">Audit a page to see its checks.</div></div>
+									<h6 class="mq-overline mt-3 mb-1">Browser timing for this visit</h6>
+									<div id="seoTiming" class="small text-muted">-</div>
+								</div>
 
 								<div id="seoOverview" class="tab-pane fade show active">
 									<div class="mb-3">
@@ -687,8 +681,11 @@
 							</div>
 
 							<div class="d-flex gap-2">
-								<button id="extractSeoBtn" class="btn btn-primary flex-fill shadow-sm fw-bold">
-									<i class="bi bi-bug-fill me-1"></i> CRAWL PAGE
+								<button id="extractSeoBtn" class="btn btn-primary flex-fill shadow-sm fw-bold" title="Audit the page in the current tab, as rendered">
+									<i class="bi bi-search me-1" aria-hidden="true"></i> Audit this page
+								</button>
+								<button id="crawlSiteBtn" class="btn btn-outline-primary fw-bold" title="Crawl the whole site in a new tab (SEO Spider)">
+									<i class="bi bi-diagram-3 me-1" aria-hidden="true"></i> Crawl site
 								</button>
 								<div class="btn-group">
 									<button id="generateSeoReportBtn" class="btn btn-outline-secondary fw-bold" title="Open Full Report">
@@ -734,14 +731,14 @@
 							</div>
 
 							<div class="mb-3">
-								<button id="btnToggleCssInspector" class="btn w-100 p-2 rounded-3 shadow-sm border-0 position-relative overflow-hidden group-hover" style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; transition: all 0.3s ease;">
+								<button id="btnToggleCssInspector" class="btn btn-primary w-100 p-2 rounded-3 shadow-sm border-0 position-relative overflow-hidden btn-lift-hover">
 									<div class="d-flex align-items-center justify-content-center gap-2 z-1 position-relative">
-										<div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; backdrop-filter: blur(5px); transition: all 0.3s;">
-											<i class="bi bi-magic fs-5 text-white" id="cssInspectorIcon" aria-hidden="true"></i>
+										<div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; background: color-mix(in srgb, currentColor 18%, transparent);">
+											<i class="bi bi-magic fs-5" id="cssInspectorIcon" aria-hidden="true"></i>
 										</div>
 										<div class="text-start lh-sm">
-											<span id="cssInspectorBtnText" class="d-block fw-bold fs-6 text-white">Start Live Inspector</span>
-											<small id="cssInspectorSubText" class="text-white text-opacity-75" style="font-size: var(--mq-fs-sm);">Hover to extract element styles</small>
+											<span id="cssInspectorBtnText" class="d-block fw-bold fs-6">Start Live Inspector</span>
+											<small id="cssInspectorSubText" class="opacity-75" style="font-size: var(--mq-fs-sm);">Hover to extract element styles</small>
 										</div>
 									</div>
 									
@@ -1390,131 +1387,113 @@
 
 				<!--  BULK URL Section -->
 				<template id="tmpl_buoSection" class="d-none">
+                    <!-- Bulk URL: scripts/bulk-url.js (same ids in bulk_url_tools.html); parsing in scripts/url_list.js,
+                         opening in background.js (bulk_open_urls). -->
                     <div class="card bg-body-tertiary shadow-sm mb-2 border position-relative">
 						<div class="card-header mq-section-header">
                             <h6 class="mb-0 fw-bold">
-                                <i class="bi bi-rocket-takeoff-fill me-2 text-info"></i>Bulk URL Manager
+                                <i class="bi bi-rocket-takeoff-fill me-2 text-info" aria-hidden="true"></i>Bulk URL Manager
                             </h6>
                             <div class="d-flex align-items-center gap-2">
-                                <a href="bulk_url_tools.html" target="_blank" class="mq-icon-btn" title="Open in Full Screen">
-                                    <i class="bi bi-arrows-fullscreen"></i>
+                                <a href="bulk_url_tools.html" target="_blank" class="mq-icon-btn" title="Open in full screen" aria-label="Open in full screen">
+                                    <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
                                 </a>
-                                <button class="mq-icon-btn favorite-star" data-section="buoSection" title="Add to favorites">
-                                    <i class="bi bi-star text-warning"></i>
+                                <button class="mq-icon-btn favorite-star" data-section="buoSection" title="Add to favorites" aria-label="Add to favorites">
+                                    <i class="bi bi-star text-warning" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="card-body">
-                            <div id="error" class="alert alert-danger py-2 px-3 small d-none mb-2 fw-bold border-0 shadow-sm" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="errorText">Error</span>
-                            </div>
-
-							<div class="d-flex justify-content-between align-items-center mb-2">
-                                <label for="urls" class="form-label text-info mb-0">URL List</label>
-                                
-                                <div class="d-flex align-items-center gap-2 bg-body border border-secondary-subtle rounded-pill px-3 py-1 shadow-sm">
-                                    <button class="btn btn-sm btn-link text-body text-decoration-none p-0 fw-bold btn-lift-hover" id="pasteBtn" title="Paste"><i class="bi bi-clipboard me-1"></i>Paste</button>
-                                    <div class="vr bg-secondary opacity-25" style="height: 15px; margin-top: 2px;"></div>
-                                    <button class="btn btn-sm btn-link text-primary text-decoration-none p-0 fw-bold btn-lift-hover" id="fromTabBtn" title="Current Tab"><i class="bi bi-browser-chrome me-1"></i>Tab</button>
-                                    <div class="vr bg-secondary opacity-25" style="height: 15px; margin-top: 2px;"></div>
-                                    <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold btn-lift-hover" id="clearBtn" title="Clear"><i class="bi bi-trash"></i></button>
+                        <div class="card-body d-flex flex-column gap-2">
+                            <div class="buo-toolbar" role="toolbar" aria-label="List tools">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="pasteBtn" title="Replace the list with the clipboard"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Paste</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="fromTabBtn" title="Every link on the current tab"><i class="bi bi-window me-1" aria-hidden="true"></i>From tab</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="importBtn" title="Import .txt, .csv, .json or a bookmarks .html file"><i class="bi bi-upload me-1" aria-hidden="true"></i>Import</button>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</button>
+                                    <ul class="dropdown-menu">
+                                        <li><button type="button" class="dropdown-item" id="exportBtn">Valid URLs (.txt)</button></li>
+                                        <li><button type="button" class="dropdown-item" id="exportCsvBtn">Every line with its status (.csv)</button></li>
+                                        <li><button type="button" class="dropdown-item" id="copyBtn">Copy valid URLs</button></li>
+                                    </ul>
                                 </div>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-magic me-1" aria-hidden="true"></i>Tidy</button>
+                                    <ul class="dropdown-menu">
+                                        <li><button type="button" class="dropdown-item" id="extractBtn">Extract URLs from text</button></li>
+                                        <li><button type="button" class="dropdown-item" id="normalizeBtn">Rewrite as full URLs</button></li>
+                                        <li><button type="button" class="dropdown-item" id="dedupeBtn">Remove duplicates</button></li>
+                                        <li><button type="button" class="dropdown-item" id="removeInvalidBtn">Remove invalid lines</button></li>
+                                    </ul>
+                                </div>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Lists you opened recently"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Recent</button>
+                                    <ul class="dropdown-menu dropdown-menu-end" id="recentMenu"></ul>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="clearBtn" title="Clear the list" aria-label="Clear the list"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                             </div>
 
-                            <textarea id="urls" class="form-control font-monospace mb-2 bg-body-tertiary border-secondary-subtle shadow-inner rounded-3 p-2 text-body custom-scrollbar" rows="6" placeholder="https://example.com&#10;https://google.com..." style="font-size: var(--mq-fs-sm); white-space: pre; overflow-wrap: normal; overflow-x: auto;"></textarea>
-
-                            <label class="form-label mb-2">List Processing</label>
-                            <div class="d-flex flex-wrap gap-2 mb-3 bg-body p-2 rounded-3 border border-secondary-subtle shadow-sm">
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 fw-bold" id="extractBtn" title="Extract URLs from raw text">
-                                    <i class="bi bi-regex me-1"></i>Extract
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 fw-bold" id="cleanupBtn" title="Remove Duplicates & Empty Lines">
-                                    <i class="bi bi-magic me-1"></i>Clean
-                                </button>
-                                <div class="vr mx-1 text-secondary opacity-25"></div>
-                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" id="importBtn" title="Import TXT">
-                                    <i class="bi bi-upload"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" id="exportBtn" title="Export TXT">
-                                    <i class="bi bi-download"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" id="copyBtn" title="Copy List">
-                                    <i class="bi bi-clipboard-check"></i>
-                                </button>
+                            <div>
+                                <label for="urls" class="visually-hidden">URL list, one per line</label>
+                                <textarea id="urls" class="form-control font-monospace custom-scrollbar buo-list" rows="7" spellcheck="false" placeholder="One URL per line: example.com, https://example.com/page ...&#10;Paste mixed text and use Tidy > Extract URLs."></textarea>
+                                <div class="d-flex align-items-center gap-2 mt-1 small">
+                                    <span id="urlStats" class="text-muted" aria-live="polite">No URLs yet.</span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 d-none" id="issuesToggle" aria-expanded="false" aria-controls="urlIssues">Review</button>
+                                    <span class="ms-auto text-muted d-none d-sm-inline">Ctrl+Enter to open</span>
+                                </div>
+                                <div id="urlIssues" class="buo-issues custom-scrollbar d-none"></div>
                             </div>
 
-                            <div class="accordion shadow-sm mb-3" id="buoSettingsAccordion">
-                                <div class="accordion-item border border-secondary-subtle overflow-hidden rounded-3">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed py-2 bg-body-tertiary small fw-bold text-body" type="button" data-bs-toggle="collapse" data-bs-target="#settingsCollapse">
-                                            <i class="bi bi-sliders me-2 text-info"></i> Execution Settings
-                                        </button>
-                                    </h2>
-                                    <div id="settingsCollapse" class="accordion-collapse collapse">
-                                        <div class="accordion-body bg-body">
-                                            <div class="row g-2">
-                                                <div class="col-6 border-end border-secondary-subtle">
-                                                    <h6 class="small fw-bold text-primary mb-2 text-uppercase" style="font-size: var(--mq-fs-xs);">Opening Mode</h6>
-                                                    <div class="form-check mb-1">
-                                                        <input class="form-check-input" type="radio" id="newTab" name="newOptions">
-                                                        <label class="form-check-label" for="newTab">New Tabs</label>
-                                                    </div>
-                                                    <div class="form-check mb-1">
-                                                        <input class="form-check-input" type="radio" id="newWindow" name="newOptions">
-                                                        <label class="form-check-label" for="newWindow">New Windows</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" id="groupByHost" name="newOptions">
-                                                        <label class="form-check-label" for="groupByHost">Group by Domain</label>
-                                                    </div>
-                                                </div>
-
-                                                <div class="col-6">
-                                                    <h6 class="small fw-bold text-primary mb-2 text-uppercase" style="font-size: var(--mq-fs-xs);">Constraints</h6>
-                                                    
-                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
-                                                        <div class="form-check mb-0">
-                                                            <input class="form-check-input" type="checkbox" id="maxTotal">
-                                                            <label class="form-check-label" for="maxTotal">Max Limit</label>
-                                                        </div>
-                                                        <input type="number" id="xNumTotal" value="100" min="1" class="form-control form-control-sm text-center bg-body-tertiary border-secondary-subtle text-body p-0" style="width: 50px;">
-                                                    </div>
-
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <div class="form-check mb-0">
-                                                            <input class="form-check-input" type="checkbox" id="delayBetweenPages">
-                                                            <label class="form-check-label" for="delayBetweenPages">Delay (s)</label>
-                                                        </div>
-                                                        <input type="number" id="delayValue" value="1" min="1" class="form-control form-control-sm text-center bg-body-tertiary border-secondary-subtle text-body p-0" style="width: 50px;">
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="col-12 mt-2 pt-2 border-top border-secondary-subtle d-flex justify-content-between align-items-center">
-                                                    <div class="form-check form-switch m-0">
-                                                        <input class="form-check-input" type="checkbox" id="saveList">
-                                                        <label class="form-check-label text-success" for="saveList">Remember List</label>
-                                                    </div>
-                                                    <button id="restoreDefaults" class="btn btn-link btn-sm text-decoration-none text-danger p-0 fw-bold" style="font-size: var(--mq-fs-xs);">
-                                                        Reset Settings
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="buo-options">
+                                <label class="form-label" for="openMode">Open in</label>
+                                <select id="openMode" class="form-select form-select-sm">
+                                    <option value="tabs">New tabs (this window)</option>
+                                    <option value="groupPerHost">Tab group per domain</option>
+                                    <option value="window">One new window</option>
+                                    <option value="windowPerHost">Window per domain</option>
+                                    <option value="windowPerUrl">Window per URL</option>
+                                </select>
+                                <label class="form-label" for="openScope">URLs</label>
+                                <div class="d-flex gap-1 align-items-center">
+                                    <select id="openScope" class="form-select form-select-sm">
+                                        <option value="all">All</option>
+                                        <option value="selection">Selected lines</option>
+                                        <option value="range">Range</option>
+                                    </select>
+                                    <input type="number" id="rangeFrom" class="form-control form-control-sm buo-num d-none" min="1" placeholder="from" aria-label="From URL number">
+                                    <input type="number" id="rangeTo" class="form-control form-control-sm buo-num d-none" min="1" placeholder="to" aria-label="To URL number">
+                                </div>
+                                <label class="form-label" for="delayValue">Delay</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="delayValue" class="form-control" min="0" max="600" step="0.5" value="0" aria-describedby="delayUnit">
+                                    <span class="input-group-text" id="delayUnit">s between URLs</span>
+                                </div>
+                                <label class="form-label" for="xNumTotal">Max per batch</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="xNumTotal" class="form-control" min="0" value="0" aria-describedby="maxUnit">
+                                    <span class="input-group-text" id="maxUnit">0 = no limit</span>
+                                </div>
+                                <div class="buo-checks">
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" id="skipDuplicates" checked>
+                                        <label class="form-check-label" for="skipDuplicates">Skip duplicates</label>
                                     </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" id="saveList">
+                                        <label class="form-check-label" for="saveList">Remember list</label>
+                                    </div>
+                                    <button type="button" id="restoreDefaults" class="btn btn-link btn-sm p-0 ms-auto">Reset options</button>
                                 </div>
                             </div>
 
                             <div class="d-flex gap-2">
-                                <button id="openBtn" class="btn btn-primary fw-bold w-75 rounded-pill shadow-sm btn-lift-hover">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> OPEN ALL
-                                </button>
-                                <button id="openOneByOne" class="btn btn-outline-secondary w-25 rounded-pill fw-bold shadow-sm" title="Open sequentially">
-                                    1-by-1
-                                </button>
-                                <button id="copyUrlsBtn" class="d-none">HiddenRef</button> 
+                                <button type="button" id="openBtn" class="btn btn-primary fw-bold flex-grow-1" disabled><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i><span id="openBtnText">Open URLs</span></button>
+                                <button type="button" id="stopBtn" class="btn btn-outline-danger fw-bold d-none"><i class="bi bi-stop-circle me-1" aria-hidden="true"></i>Stop</button>
                             </div>
-
+                            <div id="bulkStatus" class="d-none" role="status" aria-live="polite">
+                                <div class="progress mb-1" style="height: 6px;" role="progressbar" aria-label="Batch progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="bulkProgressBar" style="width: 0%;"></div></div>
+                                <div class="small" id="bulkStatusText"></div>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -2759,7 +2738,7 @@
 							<h5 class="fw-bold text-body">Draw on the Web</h5>
 							<p class="small text-muted mb-3">Launch the drawing tools to annotate, highlight, or draw directly on the current active tab.</p>
 							
-							<button id="launchWebPaintBtn" class="btn fw-bold px-3 py-2 rounded-pill border-0 text-white btn-bounce-hover" style="background: linear-gradient(135deg, #ff007a, #7928ca); box-shadow: 0 4px 15px rgba(121, 40, 202, 0.3);">
+							<button id="launchWebPaintBtn" class="btn btn-primary fw-bold px-3 py-2 rounded-pill border-0 shadow-sm btn-bounce-hover">
 								<i class="bi bi-palette-fill me-2 align-middle"></i> Start Drawing
 							</button>
 
@@ -2859,14 +2838,13 @@
 							border-color: rgba(255, 255, 255, 0.3) !important;
 						}
 						.glass-primary {
-							background: rgba(13, 110, 253, 0.8) !important; /* Solid-ish Blue */
+							background: color-mix(in srgb, var(--mq-accent) 85%, transparent) !important; /* theme accent (was Bootstrap blue) */
 							backdrop-filter: blur(5px);
 							border: none !important;
-							color: white !important;
+							color: var(--mq-on-accent) !important;
 						}
 						.glass-primary:hover {
-							background: rgba(13, 110, 253, 1) !important;
-							transform: scale(1.05);
+							background: var(--mq-accent) !important;
 						}
 						.glass-input {
 							background: rgba(255, 255, 255, 0.2) !important;
@@ -3413,7 +3391,7 @@
 					<i class="bi bi-key-fill fs-1"></i>
 				</div>
 				<h5 class="fw-bolder mb-2 text-body">Unlock Pro Features</h5>
-				<p class="small text-muted mb-3">The Marquis Command Center (Floating AI & Dock) requires a valid license key.</p>
+				<p class="small text-muted mb-3">The Marquis Command Center (floating dock) requires a valid license key.</p>
 				
 				<a href="https://marqu1s.gumroad.com/l/psqsv" target="_blank" class="btn btn-primary fw-bold w-100 rounded-pill shadow-sm mb-2 btn-lift-hover">
 					<i class="bi bi-shop me-1"></i> Get License
@@ -3718,26 +3696,39 @@
         </div>
     </div>
 
-	<div class="modal fade" id="notificationsModal" tabindex="-1">
-		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
-			<div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden bg-body">
-				<div class="modal-header py-2 bg-body-tertiary border-bottom border-secondary-subtle">
-					<h6 class="modal-title fw-bold small text-body d-flex align-items-center mb-0">
-						<div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 20px;"><i class="bi bi-bell-fill fs-6"></i></div>
-						Notifications
+	<!-- Notifications: scripts/notifications.js renders it; background.js (notify) records the events. -->
+	<div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notifModalTitle" style="--bs-modal-width: 440px;">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body">
+				<div class="modal-header py-2 px-3 gap-1 bg-body-tertiary border-bottom border-secondary-subtle">
+					<h6 class="modal-title fw-bold text-body d-flex align-items-center gap-2 mb-0 me-auto" id="notifModalTitle">
+						<i class="bi bi-bell-fill text-primary" aria-hidden="true"></i>Notifications
 					</h6>
-					<button type="button" class="btn-close small" data-bs-dismiss="modal" aria-label="Close"></button>
+					<span id="notifDndPill" class="badge rounded-pill bg-secondary d-none"><i class="bi bi-bell-slash-fill me-1" aria-hidden="true"></i>Do not disturb</span>
+					<button type="button" class="mq-icon-btn" id="notifMarkAllBtn" title="Mark all as read" aria-label="Mark all as read"><i class="bi bi-check2-all" aria-hidden="true"></i></button>
+					<button type="button" class="mq-icon-btn" id="notifClearBtn" title="Clear all" aria-label="Clear all notifications"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+					<button type="button" class="mq-icon-btn" id="notifPrefsBtn" data-bs-toggle="collapse" data-bs-target="#notifPrefs" aria-expanded="false" aria-controls="notifPrefs" title="Notification settings" aria-label="Notification settings"><i class="bi bi-gear" aria-hidden="true"></i></button>
+					<button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
-				<div class="modal-body p-2"> 
-					<div id="globalNotifList" class="d-flex flex-column gap-2 overflow-auto custom-scrollbar p-1" style="max-height: 400px;">
-						
-						<div id="notifEmptyState" class="text-center text-muted py-3 small bg-body-tertiary rounded-3 border border-dashed">
-							<i class="bi bi-bell-slash fs-2 opacity-50 mb-2 d-block"></i>
-							<span class="fw-bold">No new notifications.</span>
+				<div class="collapse border-bottom border-secondary-subtle bg-body-tertiary" id="notifPrefs">
+					<div class="px-3 py-2 d-flex flex-column gap-2">
+						<div class="form-check form-switch m-0">
+							<input class="form-check-input" type="checkbox" role="switch" id="notifDndToggle">
+							<label class="form-check-label fw-bold" for="notifDndToggle">Do not disturb</label>
+							<div class="small text-muted">Pauses device pop-ups. Everything still arrives here, and nothing is replayed when you turn it off.</div>
 						</div>
+						<div class="form-check form-switch m-0">
+							<input class="form-check-input" type="checkbox" role="switch" id="notifDndReminders">
+							<label class="form-check-label" for="notifDndReminders">Let due-date reminders through</label>
+						</div>
+						<h6 class="mq-overline mb-0 mt-1">Device pop-ups by tool</h6>
+						<div id="notifSourcePrefs" class="d-flex flex-column gap-1"></div>
 					</div>
 				</div>
-
+				<div class="modal-body p-2 custom-scrollbar">
+					<div id="globalNotifList" class="d-flex flex-column gap-2" aria-live="polite"></div>
+					<div id="notifEmptyState" class="mq-home-empty d-none"><i class="bi bi-bell-slash" aria-hidden="true"></i>You're all caught up.</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -4027,161 +4018,117 @@
 		</div>
 	</div>
 
-	<div class="modal fade" id="kanbanEditCardModal" tabindex="-1">
-		<div class="modal-dialog modal-dialog-centered modal-lg">
-			<div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body-tertiary position-relative">
-				
-                <button type="button" class="btn-close position-absolute shadow-none" id="editModalCloseBtn" data-bs-dismiss="modal" style="top: 16px; right: 20px; z-index: 1050;" aria-label="Close"></button>
+	<!-- Kanban card editor: one column (labels + due date, description, checklist); header and footer stay put
+	     while the body scrolls (modal-dialog-scrollable). Same markup in Marquis.html and kanban_fullscreen.html. -->
+	<div class="modal fade" id="kanbanEditCardModal" tabindex="-1" aria-labelledby="editKanbanCardTitle" style="--bs-modal-width: 560px;">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body-tertiary">
 
-                <div id="editModalCover" class="w-100 d-none" style="height: 96px; background-color: #0079bf; transition: background-color 0.2s;"></div>
+				<!-- Cover colour strip: kanban.js sets the colour and shows it when the card has a cover. -->
+				<div id="editModalCover" class="w-100 flex-shrink-0 d-none" style="height: 12px; background-color: #0079bf; transition: background-color 0.2s;"></div>
 
-				<div class="modal-body custom-scrollbar" style="max-height: 85vh; overflow-y: auto; overflow-x: hidden;">
-					
-					<div class="row g-2">
-						<div class="col-md-9">
-							
-                            <div class="d-flex align-items-start mb-3">
-                                <div style="width: 36px;" class="flex-shrink-0 text-center me-2 mt-1">
-                                    <i class="bi bi-card-heading text-secondary"></i>
-                                </div>
-                                <div class="flex-grow-1 min-w-0">
-                                    <input type="text" id="editKanbanCardTitle" class="form-control fw-bold border-0 shadow-none text-body px-2 py-1 m-0 rounded-2" style="font-size: 1.25rem;">
-									<p class="small text-muted px-2 mb-0 mt-1">in list <span class="text-decoration-underline fw-bold text-body" id="editKanbanListInfo">To Do</span></p>
-                                </div>
-                            </div>
+				<div class="modal-header py-2 px-3 gap-2 align-items-start bg-body border-bottom border-secondary-subtle">
+					<div class="flex-grow-1 min-w-0">
+						<input type="text" id="editKanbanCardTitle" class="form-control fw-bold border-0 shadow-none bg-transparent text-body px-1 py-0 rounded-2" style="font-size: 1rem;" aria-label="Card title">
+						<div class="small text-muted px-1">in list <span class="fw-bold text-body" id="editKanbanListInfo">To Do</span></div>
+					</div>
+					<button type="button" class="btn-close flex-shrink-0 mt-1" id="editModalCloseBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
 
-                            <div class="d-flex align-items-start mb-3">
-                                <div style="width: 36px;" class="flex-shrink-0 me-2"></div> <div class="flex-grow-1 min-w-0 d-flex flex-wrap gap-2" id="editModalMetaData">
-                                    
-                                    <div id="editModalLabelsWrapper" class="d-none">
-                                        <h6 class="mq-overline mb-2 px-2">Labels</h6>
-                                        <div class="d-flex flex-wrap gap-1 px-2" id="editModalLabelsDisplay"></div>
-                                    </div>
-
-									<div id="editModalDateWrapper">
-                                        <h6 class="mq-overline mb-2 px-2">Due Date & Time</h6>
-                                        <div class="d-flex align-items-center gap-2 bg-body px-2 py-1 ms-2 rounded-3 shadow-sm border border-secondary-subtle" style="min-height: 32px;">
-                                            <input type="date" id="editKanbanCardDate" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 110px;">
-                                            <div class="vr bg-secondary opacity-25"></div>
-                                            <input type="time" id="editKanbanCardTime" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 90px;">
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-
-                            <div class="d-flex align-items-start mb-3">
-                                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
-                                    <i class="bi bi-justify-left text-secondary"></i>
-                                </div>
-                                <div class="flex-grow-1 min-w-0">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <h6 class="fw-bold mb-0 text-body fs-6 px-2">Description</h6>
-                                    </div>
-                                    <textarea id="editKanbanCardDesc" class="form-control shadow-sm border-secondary-subtle bg-body custom-scrollbar text-body p-2 rounded-3" rows="4" placeholder="Add a more detailed description..."></textarea>
-                                </div>
-                            </div>
-
-                            <div class="d-flex align-items-start mb-2">
-                                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
-                                    <i class="bi bi-check2-square text-secondary"></i>
-                                </div>
-                                <div class="flex-grow-1 min-w-0">
-                                    <div class="d-flex justify-content-between align-items-center mb-2 px-2">
-                                        <h6 class="fw-bold mb-0 text-body fs-6">Checklist</h6>
-                                        <span class="badge bg-secondary rounded-pill px-3 py-2" id="editKanbanChecklistProgress">0%</span>
-                                    </div>
-                                    
-                                    <div class="progress mb-3 bg-secondary bg-opacity-25 rounded-pill" style="height: 8px;">
-                                        <div id="editKanbanProgressBar" class="progress-bar bg-primary rounded-pill" role="progressbar" style="width: 0%; transition: width 0.3s;"></div>
-                                    </div>
-                                    
-                                    <ul class="list-group list-group-flush small mb-2 bg-transparent" id="editKanbanChecklistArea"></ul>
-                                    
-                                    <div class="input-group input-group-sm shadow-sm rounded-3 overflow-hidden border border-secondary-subtle mt-2">
-                                        <input type="text" id="kanbanChecklistInput" class="form-control bg-body text-body border-0 px-3 shadow-none" placeholder="Add an item...">
-                                        <button class="btn btn-secondary fw-bold px-3 border-0" id="kanbanAddChecklistBtn">Add</button>
-                                    </div>
-                                </div>
-                            </div>
-
+				<div class="modal-body p-3 custom-scrollbar">
+					<div class="d-flex flex-wrap align-items-start gap-3 mb-3" id="editModalMetaData">
+						<div id="editModalLabelsWrapper" class="d-none">
+							<h6 class="mq-overline mb-1">Labels</h6>
+							<div class="d-flex flex-wrap gap-1" id="editModalLabelsDisplay"></div>
 						</div>
-
-                        <div class="col-md-3">
-							<h6 class="mq-overline mb-2 mt-2 mt-md-0">Add to card</h6>
-							
-							<div class="d-grid gap-2 mb-3">
-								<div class="dropdown">
-									<button class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-										<i class="bi bi-tag me-2"></i> Labels
-									</button>
-									<div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 260px;">
-										<h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Select Labels</h6>
-										
-                                        <div id="kanbanLabelSelector" class="d-flex flex-column gap-2 mb-2">
-											<div class="form-check d-flex align-items-center p-0 m-0">
-												<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-danger" data-text="Urgent / Bug" id="lbl-danger">
-												<label class="form-check-label w-100 rounded px-2 py-1 bg-danger text-white fw-bold small shadow-sm" for="lbl-danger">Urgent / Bug</label>
-											</div>
-											<div class="form-check d-flex align-items-center p-0 m-0">
-												<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-warning" data-text="Review" id="lbl-warning">
-												<label class="form-check-label w-100 rounded px-2 py-1 bg-warning text-dark fw-bold small shadow-sm" for="lbl-warning">Review</label>
-											</div>
-											<div class="form-check d-flex align-items-center p-0 m-0">
-												<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-success" data-text="Approved" id="lbl-success">
-												<label class="form-check-label w-100 rounded px-2 py-1 bg-success text-white fw-bold small shadow-sm" for="lbl-success">Approved</label>
-											</div>
-											<div class="form-check d-flex align-items-center p-0 m-0">
-												<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-info" data-text="Design" id="lbl-info">
-												<label class="form-check-label w-100 rounded px-2 py-1 bg-info text-dark fw-bold small shadow-sm" for="lbl-info">Design</label>
-											</div>
-											<div class="form-check d-flex align-items-center p-0 m-0">
-												<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-primary" data-text="Dev / Backend" id="lbl-primary">
-												<label class="form-check-label w-100 rounded px-2 py-1 bg-primary text-white fw-bold small shadow-sm" for="lbl-primary">Dev / Backend</label>
-											</div>
-										</div>
-
-                                        <div class="border-top border-secondary-subtle pt-2">
-                                            <h6 class="small fw-bold text-secondary mb-2" style="font-size: var(--mq-fs-xs);">CREATE NEW LABEL</h6>
-                                            <input type="text" id="customLabelInput" class="form-control form-control-sm bg-body-tertiary border-secondary-subtle text-body mb-2" placeholder="Label name...">
-                                            <div class="d-flex gap-1 mb-2">
-                                                <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#9333ea" style="height:20px; background-color:#9333ea;" aria-label="Label color: Violet" title="Label color: Violet"></button>
-                                                <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#0ea5e9" style="height:20px; background-color:#0ea5e9;" aria-label="Label color: Sky blue" title="Label color: Sky blue"></button>
-                                                <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#14b8a6" style="height:20px; background-color:#14b8a6;" aria-label="Label color: Teal" title="Label color: Teal"></button>
-                                                <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#f59e0b" style="height:20px; background-color:#f59e0b;" aria-label="Label color: Amber" title="Label color: Amber"></button>
-                                            </div>
-                                            <button class="btn btn-sm btn-secondary w-100 fw-bold" id="btnAddCustomLabel">Create</button>
-                                        </div>
-									</div>
-								</div>
-
-								<div class="dropdown">
-									<button class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3" data-bs-toggle="dropdown">
-										<i class="bi bi-image me-2"></i> Cover
-									</button>
-									<div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 250px;">
-										<h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Cover Color</h6>
-										<div class="d-flex flex-wrap gap-2" id="kanbanCoverSelector">
-											<button class="btn btn-outline-secondary p-0 kb-cover-btn d-flex align-items-center justify-content-center" data-color="none" style="width: 45px; height: 32px;" aria-label="No cover" title="No cover"><i class="bi bi-slash-lg"></i></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#0079bf" style="width: 45px; height: 32px; background-color: #0079bf;" aria-label="Cover color: Blue" title="Cover color: Blue"></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#d29034" style="width: 45px; height: 32px; background-color: #d29034;" aria-label="Cover color: Orange" title="Cover color: Orange"></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#519839" style="width: 45px; height: 32px; background-color: #519839;" aria-label="Cover color: Green" title="Cover color: Green"></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#b04632" style="width: 45px; height: 32px; background-color: #b04632;" aria-label="Cover color: Red" title="Cover color: Red"></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#89609e" style="width: 45px; height: 32px; background-color: #89609e;" aria-label="Cover color: Purple" title="Cover color: Purple"></button>
-											<button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#cd5a91" style="width: 45px; height: 32px; background-color: #cd5a91;" aria-label="Cover color: Pink" title="Cover color: Pink"></button>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<h6 class="mq-overline mb-2 mt-3">Actions</h6>
-							<div class="d-grid gap-2">
-								<button type="button" id="btnUpdateKanbanCard" class="btn btn-primary fw-bold text-start shadow-sm rounded-3"><i class="bi bi-save2 me-2"></i> Save & Close</button>
-								<button type="button" id="btnDeleteKanbanCard" class="btn btn-danger text-start fw-bold shadow-sm rounded-3"><i class="bi bi-trash3 me-2"></i> Delete</button>
+						<div id="editModalDateWrapper">
+							<h6 class="mq-overline mb-1">Due date</h6>
+							<div class="d-flex align-items-center gap-2 bg-body px-2 rounded-2 border border-secondary-subtle" style="min-height: 30px;">
+								<input type="date" id="editKanbanCardDate" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 text-body" style="max-width: 110px;" aria-label="Due date">
+								<div class="vr bg-secondary opacity-25"></div>
+								<input type="time" id="editKanbanCardTime" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 text-body" style="max-width: 90px;" aria-label="Due time">
 							</div>
 						</div>
 					</div>
 
+					<label for="editKanbanCardDesc" class="mq-overline d-block mb-1"><i class="bi bi-justify-left me-1" aria-hidden="true"></i>Description</label>
+					<textarea id="editKanbanCardDesc" class="form-control form-control-sm bg-body border-secondary-subtle text-body custom-scrollbar mb-3" rows="3" placeholder="Add a more detailed description..."></textarea>
+
+					<div class="d-flex align-items-center gap-2 mb-1">
+						<h6 class="mq-overline mb-0 flex-grow-1"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>Checklist</h6>
+						<span class="badge bg-secondary rounded-pill" id="editKanbanChecklistProgress">0%</span>
+					</div>
+					<div class="progress mb-2 rounded-pill" style="height: 4px;" role="progressbar" aria-label="Checklist progress">
+						<div id="editKanbanProgressBar" class="progress-bar bg-primary rounded-pill" style="width: 0%; transition: width 0.3s;"></div>
+					</div>
+					<ul class="list-group list-group-flush small mb-2 bg-transparent" id="editKanbanChecklistArea"></ul>
+					<div class="input-group input-group-sm">
+						<input type="text" id="kanbanChecklistInput" class="form-control bg-body text-body border-secondary-subtle" placeholder="Add an item..." aria-label="New checklist item">
+						<button class="btn btn-secondary fw-bold" id="kanbanAddChecklistBtn">Add</button>
+					</div>
+				</div>
+
+				<div class="modal-footer py-2 px-3 gap-2 justify-content-between bg-body border-top border-secondary-subtle">
+					<div class="d-flex gap-2 m-0">
+						<div class="dropup">
+							<button class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="bi bi-tag me-1" aria-hidden="true"></i>Labels</button>
+							<div class="dropdown-menu p-2" style="width: 240px;">
+								<h6 class="mq-overline mb-2">Select labels</h6>
+								<div id="kanbanLabelSelector" class="d-flex flex-column gap-1 mb-2">
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-danger" data-text="Urgent / Bug" id="lbl-danger">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-danger text-white fw-bold small" for="lbl-danger">Urgent / Bug</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-warning" data-text="Review" id="lbl-warning">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-warning text-dark fw-bold small" for="lbl-warning">Review</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-success" data-text="Approved" id="lbl-success">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-success text-white fw-bold small" for="lbl-success">Approved</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-info" data-text="Design" id="lbl-info">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-info text-dark fw-bold small" for="lbl-info">Design</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-primary" data-text="Dev / Backend" id="lbl-primary">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-primary text-white fw-bold small" for="lbl-primary">Dev / Backend</label>
+									</div>
+								</div>
+								<div class="border-top border-secondary-subtle pt-2">
+									<h6 class="mq-overline mb-1">Create new label</h6>
+									<input type="text" id="customLabelInput" class="form-control form-control-sm bg-body-tertiary border-secondary-subtle text-body mb-2" placeholder="Label name..." aria-label="New label name">
+									<div class="d-flex gap-1 mb-2">
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#9333ea" style="height:20px; background-color:#9333ea;" aria-label="Label color: Violet" title="Label color: Violet"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#0ea5e9" style="height:20px; background-color:#0ea5e9;" aria-label="Label color: Sky blue" title="Label color: Sky blue"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#14b8a6" style="height:20px; background-color:#14b8a6;" aria-label="Label color: Teal" title="Label color: Teal"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#f59e0b" style="height:20px; background-color:#f59e0b;" aria-label="Label color: Amber" title="Label color: Amber"></button>
+									</div>
+									<button class="btn btn-sm btn-secondary w-100 fw-bold" id="btnAddCustomLabel">Create</button>
+								</div>
+							</div>
+						</div>
+						<div class="dropup">
+							<button class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="dropdown"><i class="bi bi-image me-1" aria-hidden="true"></i>Cover</button>
+							<div class="dropdown-menu p-2" style="width: 216px;">
+								<h6 class="mq-overline mb-2">Cover color</h6>
+								<div class="d-flex flex-wrap gap-1" id="kanbanCoverSelector">
+									<button class="btn btn-outline-secondary p-0 kb-cover-btn d-flex align-items-center justify-content-center" data-color="none" style="width: 36px; height: 24px;" aria-label="No cover" title="No cover"><i class="bi bi-slash-lg"></i></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#0079bf" style="width: 36px; height: 24px; background-color: #0079bf;" aria-label="Cover color: Blue" title="Cover color: Blue"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#d29034" style="width: 36px; height: 24px; background-color: #d29034;" aria-label="Cover color: Orange" title="Cover color: Orange"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#519839" style="width: 36px; height: 24px; background-color: #519839;" aria-label="Cover color: Green" title="Cover color: Green"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#b04632" style="width: 36px; height: 24px; background-color: #b04632;" aria-label="Cover color: Red" title="Cover color: Red"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#89609e" style="width: 36px; height: 24px; background-color: #89609e;" aria-label="Cover color: Purple" title="Cover color: Purple"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#cd5a91" style="width: 36px; height: 24px; background-color: #cd5a91;" aria-label="Cover color: Pink" title="Cover color: Pink"></button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="d-flex gap-2 m-0">
+						<button type="button" id="btnDeleteKanbanCard" class="btn btn-sm btn-outline-danger fw-bold"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</button>
+						<button type="button" id="btnUpdateKanbanCard" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-save2 me-1" aria-hidden="true"></i>Save &amp; Close</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -4315,6 +4262,9 @@
 	<!-- Themed floating menus/listboxes for every <select> and dropdown (MarquisFloat); started in script.js. -->
 	<script src="scripts/mq_float.js" defer></script>
 	<script src="config.js" defer></script>
+	<!-- Before script.js: the Notifications panel lists overdue cards (KanbanStore.due) and names tools (MarquisNotifySources). -->
+	<script src="scripts/kanban_store.js" defer></script>
+	<script src="scripts/notify_sources.js" defer></script>
 	<script src="script.js" defer></script>
 	<script src="scripts/command_center.js" defer></script>
 	<script src="scripts/favorites.js" defer></script>

@@ -124,221 +124,121 @@
     </div>
   </div>
 
-  <div class="modal fade" id="kanbanEditCardModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div
-        class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body-tertiary position-relative">
+	<!-- Kanban card editor: one column (labels + due date, description, checklist); header and footer stay put
+	     while the body scrolls (modal-dialog-scrollable). Same markup in Marquis.html and kanban_fullscreen.html. -->
+	<div class="modal fade" id="kanbanEditCardModal" tabindex="-1" aria-labelledby="editKanbanCardTitle" style="--bs-modal-width: 560px;">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content border-secondary-subtle shadow-lg rounded-3 overflow-hidden bg-body-tertiary">
 
-        <button type="button" class="btn-close position-absolute shadow-none" id="editModalCloseBtn"
-          data-bs-dismiss="modal" style="top: 16px; right: 20px; z-index: 1050;"></button>
+				<!-- Cover colour strip: kanban.js sets the colour and shows it when the card has a cover. -->
+				<div id="editModalCover" class="w-100 flex-shrink-0 d-none" style="height: 12px; background-color: #0079bf; transition: background-color 0.2s;"></div>
 
-        <div id="editModalCover" class="w-100 d-none"
-          style="height: 96px; background-color: #0079bf; transition: background-color 0.2s;"></div>
+				<div class="modal-header py-2 px-3 gap-2 align-items-start bg-body border-bottom border-secondary-subtle">
+					<div class="flex-grow-1 min-w-0">
+						<input type="text" id="editKanbanCardTitle" class="form-control fw-bold border-0 shadow-none bg-transparent text-body px-1 py-0 rounded-2" style="font-size: 1rem;" aria-label="Card title">
+						<div class="small text-muted px-1">in list <span class="fw-bold text-body" id="editKanbanListInfo">To Do</span></div>
+					</div>
+					<button type="button" class="btn-close flex-shrink-0 mt-1" id="editModalCloseBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
 
-        <div class="modal-body custom-scrollbar"
-          style="max-height: 85vh; overflow-y: auto; overflow-x: hidden;">
+				<div class="modal-body p-3 custom-scrollbar">
+					<div class="d-flex flex-wrap align-items-start gap-3 mb-3" id="editModalMetaData">
+						<div id="editModalLabelsWrapper" class="d-none">
+							<h6 class="mq-overline mb-1">Labels</h6>
+							<div class="d-flex flex-wrap gap-1" id="editModalLabelsDisplay"></div>
+						</div>
+						<div id="editModalDateWrapper">
+							<h6 class="mq-overline mb-1">Due date</h6>
+							<div class="d-flex align-items-center gap-2 bg-body px-2 rounded-2 border border-secondary-subtle" style="min-height: 30px;">
+								<input type="date" id="editKanbanCardDate" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 text-body" style="max-width: 110px;" aria-label="Due date">
+								<div class="vr bg-secondary opacity-25"></div>
+								<input type="time" id="editKanbanCardTime" class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 text-body" style="max-width: 90px;" aria-label="Due time">
+							</div>
+						</div>
+					</div>
 
-          <div class="row g-2">
-            <div class="col-md-9">
+					<label for="editKanbanCardDesc" class="mq-overline d-block mb-1"><i class="bi bi-justify-left me-1" aria-hidden="true"></i>Description</label>
+					<textarea id="editKanbanCardDesc" class="form-control form-control-sm bg-body border-secondary-subtle text-body custom-scrollbar mb-3" rows="3" placeholder="Add a more detailed description..."></textarea>
 
-              <div class="d-flex align-items-start mb-3">
-                <div style="width: 36px;" class="flex-shrink-0 text-center me-2 mt-1">
-                  <i class="bi bi-card-heading fs-5 text-secondary"></i>
-                </div>
-                <div class="flex-grow-1 min-w-0">
-                  <input type="text" id="editKanbanCardTitle"
-                    class="form-control fw-bold border-0 shadow-none text-body px-2 py-1 m-0 rounded-2"
-                    style="font-size: 1.25rem;">
-                  <p class="small text-muted px-2 mb-0 mt-1">in list <span
-                      class="text-decoration-underline fw-bold text-body" id="editKanbanListInfo">To Do</span></p>
-                </div>
-              </div>
+					<div class="d-flex align-items-center gap-2 mb-1">
+						<h6 class="mq-overline mb-0 flex-grow-1"><i class="bi bi-check2-square me-1" aria-hidden="true"></i>Checklist</h6>
+						<span class="badge bg-secondary rounded-pill" id="editKanbanChecklistProgress">0%</span>
+					</div>
+					<div class="progress mb-2 rounded-pill" style="height: 4px;" role="progressbar" aria-label="Checklist progress">
+						<div id="editKanbanProgressBar" class="progress-bar bg-primary rounded-pill" style="width: 0%; transition: width 0.3s;"></div>
+					</div>
+					<ul class="list-group list-group-flush small mb-2 bg-transparent" id="editKanbanChecklistArea"></ul>
+					<div class="input-group input-group-sm">
+						<input type="text" id="kanbanChecklistInput" class="form-control bg-body text-body border-secondary-subtle" placeholder="Add an item..." aria-label="New checklist item">
+						<button class="btn btn-secondary fw-bold" id="kanbanAddChecklistBtn">Add</button>
+					</div>
+				</div>
 
-              <div class="d-flex align-items-start mb-3">
-                <div style="width: 36px;" class="flex-shrink-0 me-2"></div>
-                <div class="flex-grow-1 min-w-0 d-flex flex-wrap gap-2" id="editModalMetaData">
-
-                  <div id="editModalLabelsWrapper" class="d-none">
-                    <h6 class="mq-overline mb-2 px-2"
-                     >Labels</h6>
-                    <div class="d-flex flex-wrap gap-1 px-2" id="editModalLabelsDisplay"></div>
-                  </div>
-
-                  <div id="editModalDateWrapper">
-                    <h6 class="mq-overline mb-2 px-2"
-                     >Due Date & Time</h6>
-                    <div class="d-flex align-items-center gap-2 bg-body px-2 py-1 ms-2 rounded-3 shadow-sm border border-secondary-subtle" style="min-height: 32px;">
-                      <input type="date" id="editKanbanCardDate"
-                        class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 110px;">
-                      <div class="vr bg-secondary opacity-25"></div>
-                      <input type="time" id="editKanbanCardTime" 
-                        class="form-control form-control-sm border-0 bg-transparent shadow-none p-0 fw-bold text-body" style="max-width: 90px;">
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              <div class="d-flex align-items-start mb-3">
-                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
-                  <i class="bi bi-justify-left fs-5 text-secondary"></i>
-                </div>
-                <div class="flex-grow-1 min-w-0">
-                  <div class="d-flex align-items-center mb-2">
-                    <h6 class="fw-bold mb-0 text-body fs-6 px-2">Description</h6>
-                  </div>
-                  <textarea id="editKanbanCardDesc"
-                    class="form-control shadow-sm border-secondary-subtle bg-body custom-scrollbar text-body p-2 rounded-3"
-                    rows="4" placeholder="Add a more detailed description..."></textarea>
-                </div>
-              </div>
-
-              <div class="d-flex align-items-start mb-2">
-                <div style="width: 36px;" class="flex-shrink-0 text-center me-2">
-                  <i class="bi bi-check2-square fs-5 text-secondary"></i>
-                </div>
-                <div class="flex-grow-1 min-w-0">
-                  <div class="d-flex justify-content-between align-items-center mb-2 px-2">
-                    <h6 class="fw-bold mb-0 text-body fs-6">Checklist</h6>
-                    <span class="badge bg-secondary rounded-pill px-3 py-2" id="editKanbanChecklistProgress">0%</span>
-                  </div>
-
-                  <div class="progress mb-3 bg-secondary bg-opacity-25 rounded-pill" style="height: 8px;">
-                    <div id="editKanbanProgressBar" class="progress-bar bg-primary rounded-pill" role="progressbar"
-                      style="width: 0%; transition: width 0.3s;"></div>
-                  </div>
-
-                  <ul class="list-group list-group-flush small mb-2 bg-transparent" id="editKanbanChecklistArea"></ul>
-
-                  <div
-                    class="input-group input-group-sm shadow-sm rounded-3 overflow-hidden border border-secondary-subtle mt-2">
-                    <input type="text" id="kanbanChecklistInput"
-                      class="form-control bg-body text-body border-0 px-3 shadow-none"
-                      placeholder="Add an item...">
-                    <button class="btn btn-secondary fw-bold px-3 border-0" id="kanbanAddChecklistBtn">Add</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-3">
-              <h6 class="mq-overline mb-2 mt-2 mt-md-0"
-               >Add to card</h6>
-
-              <div class="d-grid gap-2 mb-3">
-                <div class="dropdown">
-                  <button
-                    class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3"
-                    data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                    <i class="bi bi-tag me-2"></i> Labels
-                  </button>
-                  <div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 260px;">
-                    <h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Select Labels</h6>
-
-                    <div id="kanbanLabelSelector" class="d-flex flex-column gap-2 mb-2">
-                      <div class="form-check d-flex align-items-center p-0 m-0">
-                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
-                          value="bg-danger" data-text="Urgent / Bug" id="lbl-danger">
-                        <label
-                          class="form-check-label w-100 rounded px-2 py-1 bg-danger text-white fw-bold small shadow-sm"
-                          for="lbl-danger">Urgent / Bug</label>
-                      </div>
-                      <div class="form-check d-flex align-items-center p-0 m-0">
-                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
-                          value="bg-warning" data-text="Review" id="lbl-warning">
-                        <label
-                          class="form-check-label w-100 rounded px-2 py-1 bg-warning text-dark fw-bold small shadow-sm"
-                          for="lbl-warning">Review</label>
-                      </div>
-                      <div class="form-check d-flex align-items-center p-0 m-0">
-                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
-                          value="bg-success" data-text="Approved" id="lbl-success">
-                        <label
-                          class="form-check-label w-100 rounded px-2 py-1 bg-success text-white fw-bold small shadow-sm"
-                          for="lbl-success">Approved</label>
-                      </div>
-                      <div class="form-check d-flex align-items-center p-0 m-0">
-                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
-                          value="bg-info" data-text="Design" id="lbl-info">
-                        <label
-                          class="form-check-label w-100 rounded px-2 py-1 bg-info text-dark fw-bold small shadow-sm"
-                          for="lbl-info">Design</label>
-                      </div>
-                      <div class="form-check d-flex align-items-center p-0 m-0">
-                        <input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox"
-                          value="bg-primary" data-text="Dev / Backend" id="lbl-primary">
-                        <label
-                          class="form-check-label w-100 rounded px-2 py-1 bg-primary text-white fw-bold small shadow-sm"
-                          for="lbl-primary">Dev / Backend</label>
-                      </div>
-                    </div>
-
-                    <div class="border-top border-secondary-subtle pt-2">
-                      <h6 class="small fw-bold text-secondary mb-2" style="font-size: 0.7rem;">CREATE NEW LABEL</h6>
-                      <input type="text" id="customLabelInput"
-                        class="form-control form-control-sm bg-body-tertiary border-secondary-subtle text-body mb-2"
-                        placeholder="Label name...">
-                      <div class="d-flex gap-1 mb-2">
-                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
-                          data-color="#9333ea" style="height:20px; background-color:#9333ea;"></button>
-                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
-                          data-color="#0ea5e9" style="height:20px; background-color:#0ea5e9;"></button>
-                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
-                          data-color="#14b8a6" style="height:20px; background-color:#14b8a6;"></button>
-                        <button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill"
-                          data-color="#f59e0b" style="height:20px; background-color:#f59e0b;"></button>
-                      </div>
-                      <button class="btn btn-sm btn-secondary w-100 fw-bold" id="btnAddCustomLabel">Create</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="dropdown">
-                  <button
-                    class="btn btn-light bg-body text-body border border-secondary-subtle w-100 text-start fw-bold shadow-sm rounded-3"
-                    data-bs-toggle="dropdown">
-                    <i class="bi bi-image me-2"></i> Cover
-                  </button>
-                  <div class="dropdown-menu p-2 shadow bg-body border-secondary-subtle" style="width: 250px;">
-                    <h6 class="small fw-bold text-center mb-2 text-body border-bottom pb-2">Cover Color</h6>
-                    <div class="d-flex flex-wrap gap-2" id="kanbanCoverSelector">
-                      <button
-                        class="btn btn-outline-secondary p-0 kb-cover-btn d-flex align-items-center justify-content-center"
-                        data-color="none" style="width: 45px; height: 32px;"><i class="bi bi-slash-lg"></i></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#0079bf"
-                        style="width: 45px; height: 32px; background-color: #0079bf;"></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#d29034"
-                        style="width: 45px; height: 32px; background-color: #d29034;"></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#519839"
-                        style="width: 45px; height: 32px; background-color: #519839;"></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#b04632"
-                        style="width: 45px; height: 32px; background-color: #b04632;"></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#89609e"
-                        style="width: 45px; height: 32px; background-color: #89609e;"></button>
-                      <button class="btn p-0 kb-cover-btn border border-secondary-subtle shadow-sm" data-color="#cd5a91"
-                        style="width: 45px; height: 32px; background-color: #cd5a91;"></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <h6 class="mq-overline mb-2 mt-3"
-               >Actions</h6>
-              <div class="d-grid gap-2">
-                <button type="button" id="btnUpdateKanbanCard"
-                  class="btn btn-primary fw-bold text-start shadow-sm rounded-3"><i class="bi bi-save2 me-2"></i>
-                  Save & Close</button>
-                <button type="button" id="btnDeleteKanbanCard"
-                  class="btn btn-danger text-start fw-bold shadow-sm rounded-3"><i class="bi bi-trash3 me-2"></i>
-                  Delete</button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
+				<div class="modal-footer py-2 px-3 gap-2 justify-content-between bg-body border-top border-secondary-subtle">
+					<div class="d-flex gap-2 m-0">
+						<div class="dropup">
+							<button class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="dropdown" data-bs-auto-close="outside"><i class="bi bi-tag me-1" aria-hidden="true"></i>Labels</button>
+							<div class="dropdown-menu p-2" style="width: 240px;">
+								<h6 class="mq-overline mb-2">Select labels</h6>
+								<div id="kanbanLabelSelector" class="d-flex flex-column gap-1 mb-2">
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-danger" data-text="Urgent / Bug" id="lbl-danger">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-danger text-white fw-bold small" for="lbl-danger">Urgent / Bug</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-warning" data-text="Review" id="lbl-warning">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-warning text-dark fw-bold small" for="lbl-warning">Review</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-success" data-text="Approved" id="lbl-success">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-success text-white fw-bold small" for="lbl-success">Approved</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-info" data-text="Design" id="lbl-info">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-info text-dark fw-bold small" for="lbl-info">Design</label>
+									</div>
+									<div class="form-check d-flex align-items-center p-0 m-0">
+										<input class="form-check-input me-2 ms-0 kb-label-check border-secondary-subtle" type="checkbox" value="bg-primary" data-text="Dev / Backend" id="lbl-primary">
+										<label class="form-check-label w-100 rounded px-2 py-1 bg-primary text-white fw-bold small" for="lbl-primary">Dev / Backend</label>
+									</div>
+								</div>
+								<div class="border-top border-secondary-subtle pt-2">
+									<h6 class="mq-overline mb-1">Create new label</h6>
+									<input type="text" id="customLabelInput" class="form-control form-control-sm bg-body-tertiary border-secondary-subtle text-body mb-2" placeholder="Label name..." aria-label="New label name">
+									<div class="d-flex gap-1 mb-2">
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#9333ea" style="height:20px; background-color:#9333ea;" aria-label="Label color: Violet" title="Label color: Violet"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#0ea5e9" style="height:20px; background-color:#0ea5e9;" aria-label="Label color: Sky blue" title="Label color: Sky blue"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#14b8a6" style="height:20px; background-color:#14b8a6;" aria-label="Label color: Teal" title="Label color: Teal"></button>
+										<button class="btn p-0 custom-color-pick border border-secondary-subtle rounded flex-fill" data-color="#f59e0b" style="height:20px; background-color:#f59e0b;" aria-label="Label color: Amber" title="Label color: Amber"></button>
+									</div>
+									<button class="btn btn-sm btn-secondary w-100 fw-bold" id="btnAddCustomLabel">Create</button>
+								</div>
+							</div>
+						</div>
+						<div class="dropup">
+							<button class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="dropdown"><i class="bi bi-image me-1" aria-hidden="true"></i>Cover</button>
+							<div class="dropdown-menu p-2" style="width: 216px;">
+								<h6 class="mq-overline mb-2">Cover color</h6>
+								<div class="d-flex flex-wrap gap-1" id="kanbanCoverSelector">
+									<button class="btn btn-outline-secondary p-0 kb-cover-btn d-flex align-items-center justify-content-center" data-color="none" style="width: 36px; height: 24px;" aria-label="No cover" title="No cover"><i class="bi bi-slash-lg"></i></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#0079bf" style="width: 36px; height: 24px; background-color: #0079bf;" aria-label="Cover color: Blue" title="Cover color: Blue"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#d29034" style="width: 36px; height: 24px; background-color: #d29034;" aria-label="Cover color: Orange" title="Cover color: Orange"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#519839" style="width: 36px; height: 24px; background-color: #519839;" aria-label="Cover color: Green" title="Cover color: Green"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#b04632" style="width: 36px; height: 24px; background-color: #b04632;" aria-label="Cover color: Red" title="Cover color: Red"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#89609e" style="width: 36px; height: 24px; background-color: #89609e;" aria-label="Cover color: Purple" title="Cover color: Purple"></button>
+									<button class="btn p-0 kb-cover-btn border border-secondary-subtle" data-color="#cd5a91" style="width: 36px; height: 24px; background-color: #cd5a91;" aria-label="Cover color: Pink" title="Cover color: Pink"></button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="d-flex gap-2 m-0">
+						<button type="button" id="btnDeleteKanbanCard" class="btn btn-sm btn-outline-danger fw-bold"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete</button>
+						<button type="button" id="btnUpdateKanbanCard" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-save2 me-1" aria-hidden="true"></i>Save &amp; Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
   <div class="modal fade" id="kanbanAutomationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">

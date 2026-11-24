@@ -3,139 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>MARQUIS - BULK URL MANAGER</title>
+    <title>Marquis - Bulk URL Manager</title>
     <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
-    <link rel="stylesheet" href="styles/bootstrap.min.css">  
-	<link rel="stylesheet" href="styles/bootstrap-icons.css">  
+    <link rel="stylesheet" href="styles/bootstrap.min.css">
+    <link rel="stylesheet" href="styles/bootstrap-icons.css">
     <link rel="stylesheet" href="styles/main.css">
     <script src="scripts/theme_sync.js"></script>
+    <style>
+        /* Full-height list on wide screens; stacked below 992px. */
+        @media (min-width: 992px) { .buo-page .buo-list { height: calc(100vh - 12.5rem); } }
+    </style>
 </head>
-<body class="d-flex flex-column min-vh-100">
-
-    <nav class="navbar mq-page-header shadow-sm z-3 flex-shrink-0">
+<body class="d-flex flex-column min-vh-100 bg-body-tertiary">
+    <!-- Same ids as the popup's Bulk URL section (Marquis.html, tmpl_buoSection); scripts/bulk-url.js drives both. -->
+    <nav class="navbar mq-page-header flex-shrink-0">
         <div class="container-fluid px-0 d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
-                <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="Logo"  width="24" class="me-2 rounded">
-                <h6 class="mb-0 fw-bold text-white text-nowrap">MARQUIS - BULK URL MANAGER</h6>
+                <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="" width="24" class="rounded">
+                <h1 class="h6 mb-0 fw-bold text-nowrap"><i class="bi bi-rocket-takeoff-fill me-2 text-info" aria-hidden="true"></i>Bulk URL Manager</h1>
             </div>
-            <button id="closeStudioBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm btn-lift-hover">Close Studio</button>
+            <button type="button" id="closeStudioBtn" class="btn btn-sm btn-outline-secondary fw-bold">Close</button>
         </div>
     </nav>
 
-    <div class="container-fluid flex-grow-1 p-3 mq-page-dots">
-        <div class="row g-2 h-100">
-            
-            <div class="col-lg-8 d-flex flex-column">
-                <div class="card bg-body-tertiary border-secondary-subtle shadow-lg rounded-3 h-100 d-flex flex-column overflow-hidden">
-                    
-                    <div class="card-header bg-body border-bottom border-secondary-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold text-info text-uppercase" style="letter-spacing: 1px;"><i class="bi bi-list-ol me-2"></i>Workspace</h6>
+    <main class="container-fluid flex-grow-1 p-3 buo-page">
+        <div class="row g-3">
+            <section class="col-lg-8 d-flex flex-column gap-2" aria-label="URL list">
+                <div class="buo-toolbar" role="toolbar" aria-label="List tools">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="pasteBtn" title="Replace the list with the clipboard"><i class="bi bi-clipboard me-1" aria-hidden="true"></i>Paste</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="fromTabBtn" title="Every link on the tab you were last on"><i class="bi bi-window me-1" aria-hidden="true"></i>From tab</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="importBtn" title="Import .txt, .csv, .json or a bookmarks .html file"><i class="bi bi-upload me-1" aria-hidden="true"></i>Import</button>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-download me-1" aria-hidden="true"></i>Export</button>
+                        <ul class="dropdown-menu">
+                            <li><button type="button" class="dropdown-item" id="exportBtn">Valid URLs (.txt)</button></li>
+                            <li><button type="button" class="dropdown-item" id="exportCsvBtn">Every line with its status (.csv)</button></li>
+                            <li><button type="button" class="dropdown-item" id="copyBtn">Copy valid URLs</button></li>
+                        </ul>
                     </div>
-
-                    <div class="card-body d-flex flex-column flex-grow-1 position-relative">
-                        
-                        <div class="d-flex justify-content-between align-items-center mb-2 bg-body border border-secondary-subtle rounded-pill px-3 py-2 shadow-sm">
-                            <label for="urls" class="form-label mb-0"><i class="bi bi-link-45deg me-1"></i>URL List</label>
-                            <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-sm btn-link text-body text-decoration-none p-0 fw-bold btn-lift-hover" id="pasteBtn" title="Paste"><i class="bi bi-clipboard me-1"></i>Paste</button>
-                                <div class="vr bg-secondary opacity-25" style="height: 15px; margin-top: 2px;"></div>
-                                <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold btn-lift-hover" id="clearBtn" title="Clear"><i class="bi bi-trash"></i></button>
-                            </div>
-                        </div>
-
-                        <div id="error" class="position-absolute top-0 start-50 translate-middle-x mt-3 badge bg-danger fs-6 shadow-lg d-none z-3 animate__animated animate__fadeInDown">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="errorText">Error message</span>
-                        </div>
-                        
-                        <textarea id="urls" class="form-control border-secondary-subtle rounded-3 w-100 h-100 p-3 font-monospace custom-scrollbar shadow-inner resize-none" placeholder="// Paste or type your URLs here...&#10;https://example.com&#10;https://google.com" style="min-height: 400px; font-size: 14px; line-height: 1.6; white-space: pre; overflow-wrap: normal;"></textarea>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-magic me-1" aria-hidden="true"></i>Tidy</button>
+                        <ul class="dropdown-menu">
+                            <li><button type="button" class="dropdown-item" id="extractBtn">Extract URLs from text</button></li>
+                            <li><button type="button" class="dropdown-item" id="normalizeBtn">Rewrite as full URLs</button></li>
+                            <li><button type="button" class="dropdown-item" id="dedupeBtn">Remove duplicates</button></li>
+                            <li><button type="button" class="dropdown-item" id="removeInvalidBtn">Remove invalid lines</button></li>
+                        </ul>
                     </div>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Lists you opened recently"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Recent</button>
+                        <ul class="dropdown-menu" id="recentMenu"></ul>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="clearBtn" title="Clear the list" aria-label="Clear the list"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                </div>
+                <label for="urls" class="visually-hidden">URL list, one per line</label>
+                <textarea id="urls" class="form-control font-monospace custom-scrollbar buo-list" rows="14" spellcheck="false" placeholder="One URL per line: example.com, https://example.com/page ...&#10;Paste mixed text and use Tidy > Extract URLs."></textarea>
+                <div class="d-flex align-items-center gap-2 small">
+                    <span id="urlStats" class="text-muted" aria-live="polite">No URLs yet.</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 d-none" id="issuesToggle" aria-expanded="false" aria-controls="urlIssues">Review</button>
+                    <span class="ms-auto text-muted">Ctrl+Enter to open</span>
+                </div>
+                <div id="urlIssues" class="buo-issues custom-scrollbar d-none"></div>
+            </section>
 
-                    <div class="card-footer bg-body border-top border-secondary-subtle p-2">
-                        <div class="d-flex flex-wrap gap-2 align-items-center">
-                            <button class="btn btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm" id="extractBtn"><i class="bi bi-regex me-1"></i> Extract</button>
-                            <button class="btn btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm" id="cleanupBtn"><i class="bi bi-magic me-1"></i> Clean</button>
-                            <div class="vr mx-2 text-secondary opacity-25"></div>
-                            <button class="btn btn-outline-primary rounded-pill px-3 fw-bold shadow-sm" id="importBtn"><i class="bi bi-upload me-1"></i> Import</button>
-                            <button class="btn btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm" id="exportBtn"><i class="bi bi-download me-1"></i> Export</button>
-                            <button class="btn btn-outline-secondary rounded-pill px-3 fw-bold shadow-sm ms-auto" id="copyBtn"><i class="bi bi-clipboard-check me-1"></i> Copy List</button>
-                            <button id="copyUrlsBtn" class="d-none">HiddenRef</button> 
+            <section class="col-lg-4 d-flex flex-column gap-2" aria-label="Opening options">
+                <div class="buo-options" style="grid-template-columns: auto minmax(0, 1fr);">
+                    <label class="form-label" for="openMode">Open in</label>
+                    <select id="openMode" class="form-select form-select-sm">
+                        <option value="tabs">New tabs (this window)</option>
+                        <option value="groupPerHost">Tab group per domain</option>
+                        <option value="window">One new window</option>
+                        <option value="windowPerHost">Window per domain</option>
+                        <option value="windowPerUrl">Window per URL</option>
+                    </select>
+                    <label class="form-label" for="openScope">URLs</label>
+                    <div class="d-flex gap-1 align-items-center">
+                        <select id="openScope" class="form-select form-select-sm">
+                            <option value="all">All</option>
+                            <option value="selection">Selected lines</option>
+                            <option value="range">Range</option>
+                        </select>
+                        <input type="number" id="rangeFrom" class="form-control form-control-sm buo-num d-none" min="1" placeholder="from" aria-label="From URL number">
+                        <input type="number" id="rangeTo" class="form-control form-control-sm buo-num d-none" min="1" placeholder="to" aria-label="To URL number">
+                    </div>
+                    <label class="form-label" for="delayValue">Delay</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="delayValue" class="form-control" min="0" max="600" step="0.5" value="0" aria-describedby="delayUnit">
+                        <span class="input-group-text" id="delayUnit">s between URLs</span>
+                    </div>
+                    <label class="form-label" for="xNumTotal">Max per batch</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="xNumTotal" class="form-control" min="0" value="0" aria-describedby="maxUnit">
+                        <span class="input-group-text" id="maxUnit">0 = no limit</span>
+                    </div>
+                    <div class="buo-checks">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="skipDuplicates" checked>
+                            <label class="form-check-label" for="skipDuplicates">Skip duplicates</label>
                         </div>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="saveList">
+                            <label class="form-check-label" for="saveList">Remember list</label>
+                        </div>
+                        <button type="button" id="restoreDefaults" class="btn btn-link btn-sm p-0 ms-auto">Reset options</button>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-lg-4 d-flex flex-column gap-2">
-                
-                <div class="card bg-body-tertiary border-secondary-subtle shadow-lg rounded-3 overflow-hidden">
-                    <div class="card-header bg-body border-bottom border-secondary-subtle py-2 px-3 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold text-body text-uppercase" style="letter-spacing: 1px;"><i class="bi bi-sliders me-2"></i>Configuration</h6>
-                        <button id="restoreDefaults" class="btn btn-link btn-sm text-decoration-none text-danger p-0 fw-bold" style="font-size: 0.75rem;">Reset</button>
-                    </div>
-                    
-                    <div class="card-body">
-                        <h6 class="small fw-bold text-primary mb-2 text-uppercase" style="letter-spacing: 1px;">Opening Behavior</h6>
-                        
-                        <div class="bg-body p-2 rounded-3 border border-secondary-subtle mb-3 shadow-sm">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" id="newTab" name="newOptions">
-                                <label class="form-check-label" for="newTab">Open in New Tabs</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" id="newWindow" name="newOptions">
-                                <label class="form-check-label" for="newWindow">Open in a New Window</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" id="groupByHost" name="newOptions">
-                                <label class="form-check-label" for="groupByHost">Group by Domain</label>
-                            </div>
-                        </div>
-
-                        <h6 class="small fw-bold text-primary mb-2 text-uppercase" style="letter-spacing: 1px;">Throttling & Limits</h6>
-                        
-                        <div class="bg-body p-2 rounded-3 border border-secondary-subtle mb-3 shadow-sm">
-                            <div class="d-flex align-items-center mb-2 justify-content-between">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="checkbox" id="maxTotal">
-                                    <label class="form-check-label" for="maxTotal">Max Tabs Limit</label>
-                                </div>
-                                <input type="number" id="xNumTotal" value="100" min="1" class="form-control form-control-sm text-center border-secondary-subtle fw-bold" style="width: 70px;">
-                            </div>
-
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="checkbox" id="delayBetweenPages">
-                                    <label class="form-check-label" for="delayBetweenPages">Delay per tab (sec)</label>
-                                </div>
-                                <input type="number" id="delayValue" value="1" min="1" class="form-control form-control-sm text-center border-secondary-subtle fw-bold" style="width: 70px;">
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center p-2 bg-body border border-secondary-subtle rounded-3 shadow-sm">
-                            <span class="fw-bold text-success">Remember list on reload</span>
-                            <div class="form-check form-switch m-0 fs-5">
-                                <input class="form-check-input" type="checkbox" id="saveList" style="cursor: pointer;">
-                            </div>
-                        </div>
-                    </div>
+                <div class="d-flex gap-2">
+                    <button type="button" id="openBtn" class="btn btn-primary fw-bold flex-grow-1" disabled><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i><span id="openBtnText">Open URLs</span></button>
+                    <button type="button" id="stopBtn" class="btn btn-outline-danger fw-bold d-none"><i class="bi bi-stop-circle me-1" aria-hidden="true"></i>Stop</button>
                 </div>
-
-                <div class="card bg-info bg-opacity-10 border-info border-opacity-50 shadow-lg rounded-3 mt-auto overflow-hidden">
-                    <div class="card-body text-center">
-                        <i class="bi bi-rocket-takeoff fs-2 text-info mb-2 d-block opacity-75"></i>
-                        <button id="openBtn" class="btn btn-primary w-100 fw-bolder rounded-pill shadow mb-2 btn-lift-hover py-2 text-uppercase" style="letter-spacing: 1px;">
-                            Launch All URLs
-                        </button>
-                        <button id="openOneByOne" class="btn btn-outline-secondary w-100 fw-bold rounded-pill shadow-sm">
-                            <i class="bi bi-skip-forward-fill me-1"></i> Open Sequentially (1-by-1)
-                        </button>
-                    </div>
+                <div id="bulkStatus" class="d-none" role="status" aria-live="polite">
+                    <div class="progress mb-1" style="height: 6px;" role="progressbar" aria-label="Batch progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="bulkProgressBar" style="width: 0%;"></div></div>
+                    <div class="small" id="bulkStatusText"></div>
                 </div>
-
-            </div>
+            </section>
         </div>
-    </div>
+    </main>
 
     <script src="scripts/bootstrap.bundle.min.js"></script>
+    <script src="scripts/safe_html.js"></script>
+    <script src="scripts/mq_float.js" data-enhance></script>
+    <script src="scripts/url_list.js"></script>
     <script src="scripts/bulk-url.js"></script>
 </body>
 </html>

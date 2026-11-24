@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Marquis - SEO Spider</title>
+    <link rel="icon" type="image/png" href="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png">
+    <link rel="stylesheet" href="styles/bootstrap.min.css">
+    <link rel="stylesheet" href="styles/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="scripts/theme_sync.js"></script>
+</head>
+<body class="d-flex flex-column min-vh-100 bg-body-tertiary">
+    <!-- Site crawl: scripts/seo_crawler.js crawls, scripts/seo_spider.js shows it. Opened from the popup's
+         SEO Spider & Audit section ("Crawl site"), which audits a single page. -->
+    <nav class="navbar mq-page-header flex-shrink-0">
+        <div class="container-fluid px-0 d-flex align-items-center gap-2">
+            <img src="img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png" alt="" width="24" class="rounded">
+            <h1 class="h6 mb-0 fw-bold text-nowrap me-auto"><i class="bi bi-search-heart me-2 text-success" aria-hidden="true"></i>SEO Spider & Audit</h1>
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" id="exportMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" disabled><i class="bi bi-download me-1" aria-hidden="true"></i>Export</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button type="button" class="dropdown-item" id="exportPagesCsv">Pages (.csv)</button></li>
+                    <li><button type="button" class="dropdown-item" id="exportIssuesCsv">Issues (.csv)</button></li>
+                    <li><button type="button" class="dropdown-item" id="exportJson">Full crawl (.json)</button></li>
+                </ul>
+            </div>
+            <button type="button" id="closePageBtn" class="btn btn-sm btn-outline-secondary fw-bold">Close</button>
+        </div>
+    </nav>
+
+    <main class="container-fluid p-3 d-flex flex-column gap-2 seo-page">
+        <form id="crawlForm" class="seo-start" autocomplete="off">
+            <label for="startUrl" class="visually-hidden">Site address</label>
+            <input type="text" id="startUrl" class="form-control" placeholder="example.com or https://example.com/blog/" spellcheck="false" required>
+            <button type="submit" id="startBtn" class="btn btn-primary fw-bold text-nowrap"><i class="bi bi-play-fill me-1" aria-hidden="true"></i>Start crawl</button>
+            <button type="button" id="stopBtn" class="btn btn-outline-danger fw-bold text-nowrap d-none"><i class="bi bi-stop-circle me-1" aria-hidden="true"></i>Stop</button>
+            <button type="button" class="btn btn-outline-secondary text-nowrap" data-bs-toggle="collapse" data-bs-target="#crawlOptions" aria-expanded="false" aria-controls="crawlOptions"><i class="bi bi-sliders me-1" aria-hidden="true"></i>Options</button>
+        </form>
+
+        <div class="collapse" id="crawlOptions">
+            <div class="seo-options">
+                <label class="form-label" for="optMaxPages">Max pages</label>
+                <input type="number" id="optMaxPages" class="form-control form-control-sm" min="1" max="5000" value="200">
+                <label class="form-label" for="optMaxDepth">Max depth</label>
+                <input type="number" id="optMaxDepth" class="form-control form-control-sm" min="0" max="50" value="5" title="Clicks away from the start page">
+                <label class="form-label" for="optScope">Scope</label>
+                <select id="optScope" class="form-select form-select-sm">
+                    <option value="host">This host (www counts as the same)</option>
+                    <option value="subdomains">Include subdomains</option>
+                </select>
+                <label class="form-label" for="optConcurrency">Parallel requests</label>
+                <select id="optConcurrency" class="form-select form-select-sm">
+                    <option value="1">1 (gentlest)</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="6">6</option>
+                </select>
+                <label class="form-label" for="optDelay">Delay</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" id="optDelay" class="form-control" min="0" max="10000" step="50" value="250">
+                    <span class="input-group-text">ms per request</span>
+                </div>
+                <label class="form-label" for="optInclude">Only URLs with</label>
+                <input type="text" id="optInclude" class="form-control form-control-sm" placeholder="/blog/, /docs/*  (comma separated, * = anything)">
+                <label class="form-label" for="optExclude">Skip URLs with</label>
+                <input type="text" id="optExclude" class="form-control form-control-sm" placeholder="/tag/, ?sort=, /cart">
+                <div class="seo-option-checks">
+                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="optSitemap" checked><label class="form-check-label" for="optSitemap">Use sitemap.xml</label></div>
+                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="optTracking" checked><label class="form-check-label" for="optTracking">Ignore tracking parameters (utm_, gclid...)</label></div>
+                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="optIgnoreQuery"><label class="form-check-label" for="optIgnoreQuery">Ignore all query strings</label></div>
+                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="optResources"><label class="form-check-label" for="optResources">Check links to other sites and images (slower)</label></div>
+                </div>
+                <p class="seo-option-note small text-muted mb-0">robots.txt is always respected. Pages are fetched as a signed-out visitor and read as raw HTML: content built by JavaScript is not seen (the popup's single-page audit reads the rendered page).</p>
+            </div>
+        </div>
+
+        <section id="crawlStatus" class="seo-status d-none" role="status" aria-live="polite">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span id="statusBadge" class="badge rounded-pill bg-secondary">Ready</span>
+                <span id="statusText" class="small"></span>
+                <span id="statusElapsed" class="small text-muted ms-auto"></span>
+            </div>
+            <div class="progress my-1" style="height: 6px;" role="progressbar" aria-label="Crawl progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="statusBar" style="width: 0%;"></div></div>
+            <div id="statusCurrent" class="small text-muted text-truncate font-monospace"></div>
+            <ul id="statusNotes" class="small text-warning mb-0 ps-3"></ul>
+        </section>
+
+        <div id="emptyState" class="mq-home-empty py-4">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i>Enter a site address and start a crawl. The last crawl stays here to review later.
+        </div>
+
+        <section id="results" class="d-none d-flex flex-column gap-2" aria-label="Crawl results">
+            <div class="seo-tiles" id="summaryTiles"></div>
+            <ul class="nav nav-tabs small fw-bold" role="tablist">
+                <li class="nav-item" role="presentation"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabIssues" role="tab">Issues</button></li>
+                <li class="nav-item" role="presentation"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPages" role="tab">Pages</button></li>
+                <li class="nav-item" role="presentation"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSite" role="tab">Site files</button></li>
+            </ul>
+            <div class="tab-content">
+                <div id="tabIssues" class="tab-pane fade show active" role="tabpanel">
+                    <div class="seo-filter">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Severity" id="severityFilter"></div>
+                        <input type="search" id="issueSearch" class="form-control form-control-sm" placeholder="Filter issues or URLs" aria-label="Filter issues or URLs">
+                    </div>
+                    <div id="issueList" class="d-flex flex-column gap-1"></div>
+                </div>
+                <div id="tabPages" class="tab-pane fade" role="tabpanel">
+                    <div class="seo-filter">
+                        <select id="pageStatus" class="form-select form-select-sm" aria-label="Status">
+                            <option value="all">All pages</option><option value="ok">OK (2xx)</option><option value="redirect">Redirects</option>
+                            <option value="error">Errors and failures</option><option value="blocked">Blocked by robots.txt</option><option value="issues">With critical issues</option>
+                        </select>
+                        <input type="search" id="pageSearch" class="form-control form-control-sm" placeholder="Filter by URL or title" aria-label="Filter by URL or title">
+                    </div>
+                    <div class="seo-table-wrap custom-scrollbar">
+                        <table class="table table-sm align-middle mb-0 seo-table">
+                            <thead><tr><th scope="col">URL</th><th scope="col">Status</th><th scope="col">Title</th><th scope="col" class="text-end">Depth</th><th scope="col" class="text-end">Time</th><th scope="col" class="text-end">Issues</th></tr></thead>
+                            <tbody id="pageRows"></tbody>
+                        </table>
+                    </div>
+                    <div id="pageMore" class="small text-muted mt-1"></div>
+                </div>
+                <div id="tabSite" class="tab-pane fade" role="tabpanel"><div id="siteInfo" class="d-flex flex-column gap-2"></div></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- One page in detail -->
+    <div class="modal fade" id="pageModal" tabindex="-1" aria-labelledby="pageModalTitle" style="--bs-modal-width: 760px;">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-secondary-subtle">
+                <div class="modal-header py-2 px-3 gap-2 bg-body-tertiary">
+                    <h2 class="modal-title h6 fw-bold mb-0 text-truncate" id="pageModalTitle">Page</h2>
+                    <a id="pageModalOpen" class="btn btn-sm btn-outline-secondary ms-auto text-nowrap" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>Open</a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3" id="pageModalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/bootstrap.bundle.min.js"></script>
+    <script src="scripts/safe_html.js"></script>
+    <script src="scripts/mq_float.js" data-enhance></script>
+    <script src="scripts/seo_crawler.js"></script>
+    <script src="scripts/seo_spider.js"></script>
+</body>
+</html>

@@ -1,11 +1,145 @@
-// Handle clicks on Notifications
-if (chrome.notifications && chrome.notifications.onClicked) {
-    chrome.notifications.onClicked.addListener((notifId) => {
-        // Clear Keep Awake OR Kanban notifications when clicked
-        if (notifId === 'ka_timer_ended' || notifId === 'focus_timer_ended' || notifId.startsWith('kanban_due_')) {
-            chrome.notifications.clear(notifId); 
-        }
+// ==========================================
+// 🔔 NOTIFICATIONS
+// ==========================================
+// One path for every Marquis event, notify(event): it records the event in the in-app list (storage.local
+// marquisNotifications, newest first, at most 50; unreadNotifCount mirrors the unread count) and, unless the
+// preferences say otherwise, shows one device notification with the same title and text.
+//   event: { id?, source, title, message, level?: 'info' | 'success' | 'error' | 'reminder', silent? }
+//     id      the same id replaces the earlier entry and pop-up (no duplicates); default: a new id
+//     source  a key of MarquisNotifySources (scripts/notify_sources.js)
+//     silent  record it in the list only (the user is already looking at the result)
+//   other contexts -> SW  { action: 'notify', event }  |  { action: 'notifyDismiss', id?, source?, text? }
+// Preferences, storage.local notifyPrefs: { dnd, dndReminders, popups: { [source]: false } }
+//   Do Not Disturb pauses device pop-ups only: events still land in the list (unread), background work goes
+//   on, nothing is replayed when it ends, and due-date reminders get through only when dndReminders is on.
+//   A tool switched off in popups records to the list without a pop-up.
+importScripts('/scripts/notify_sources.js');
+
+const NOTIFY_MAX = 50;
+let notifyChain = Promise.resolve(); // one list write at a time, so two events at once cannot drop one
+let notifyIconUrl = null;
+
+function notify(event) {
+    notifyChain = notifyChain.then(() => notifyNow(event)).catch(err => console.warn('Notify failed:', err));
+    return notifyChain;
+}
+
+async function notifyNow({ id, source, title, message = '', level = 'info', silent = false }) {
+    const src = MarquisNotifySources[source] ? source : 'marquis';
+    id = String(id || `${src}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+    const { marquisNotifications: list = [], notifyPrefs: prefs = {} } =
+        await chrome.storage.local.get(['marquisNotifications', 'notifyPrefs']);
+    const entry = { id, source: src, title: String(title), message: String(message), level, isRead: false, date: new Date().toISOString() };
+    const next = [entry, ...list.filter(n => String(n.id) !== id)].slice(0, NOTIFY_MAX);
+    await chrome.storage.local.set({ marquisNotifications: next, unreadNotifCount: next.filter(n => !n.isRead).length });
+    if (silent || !wantsPopup(prefs, src, level)) return;
+    notifyIconUrl ||= await getPaddedIcon(chrome.runtime.getURL('img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png'));
+    chrome.notifications.create(id, {
+        type: 'basic',
+        iconUrl: notifyIconUrl,
+        title: entry.title,
+        message: entry.message,
+        contextMessage: `Marquis · ${MarquisNotifySources[src].label}`,
+        priority: level === 'reminder' ? 2 : level === 'error' ? 1 : 0,
+        requireInteraction: level === 'reminder'
     });
+}
+
+function wantsPopup(prefs, source, level) {
+    if (prefs.popups && prefs.popups[source] === false) return false;
+    if (prefs.dnd) return level === 'reminder' && !!prefs.dndReminders;
+    return true;
+}
+
+// Every list edit runs here, in the same queue as notify(), so an edit from the popup cannot overwrite an
+// event recorded at the same moment.
+//   { action: 'notifyDismiss', id?, source?, text? }  remove by id, or a source's entries whose text mentions
+//                                                    `text` (older entries had numeric ids); closes their pop-ups
+//   { action: 'notifyEdit', op: 'readAll' | 'clear' }
+function editNotifications(edit) {
+    notifyChain = notifyChain.then(async () => {
+        const { marquisNotifications: list = [] } = await chrome.storage.local.get('marquisNotifications');
+        const next = edit(list);
+        if (next === list) return;
+        list.filter(n => !next.some(m => m.id === n.id)).forEach(n => chrome.notifications.clear(String(n.id)));
+        await chrome.storage.local.set({ marquisNotifications: next, unreadNotifCount: next.filter(n => !n.isRead).length });
+    }).catch(err => console.warn('Notification edit failed:', err));
+    return notifyChain;
+}
+
+function notifyDismiss({ id, source, text }) {
+    const hit = (n) => (id != null && String(n.id) === String(id)) || (source && text && n.source === source && `${n.title} ${n.message}`.includes(text));
+    return editNotifications(list => (list.some(hit) ? list.filter(n => !hit(n)) : list));
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'notify') notify(request.event || {});
+    else if (request.action === 'notifyDismiss') notifyDismiss(request);
+    else if (request.action === 'notifyEdit' && request.op === 'readAll') editNotifications(list => (list.some(n => !n.isRead) ? list.map(n => ({ ...n, isRead: true })) : list));
+    else if (request.action === 'notifyEdit' && request.op === 'clear') editNotifications(list => (list.length ? [] : list));
+    else return false;
+    sendResponse({ ok: true });
+    return false;
+});
+
+// A click marks the entry read, closes the pop-up and opens the tool's page when it has one.
+chrome.notifications.onClicked.addListener(async (id) => {
+    chrome.notifications.clear(id);
+    const { marquisNotifications: list = [] } = await chrome.storage.local.get('marquisNotifications');
+    const entry = list.find(n => String(n.id) === id);
+    if (!entry) return;
+    editNotifications(l => l.map(n => (String(n.id) === id ? { ...n, isRead: true } : n)));
+    const page = MarquisNotifySources[entry.source]?.open;
+    if (page) chrome.tabs.create({ url: chrome.runtime.getURL(page) });
+});
+
+// Toolbar badge: the unread count, except while the recorder window is open (it shows REC / II there).
+async function syncNotifyBadge() {
+    const { recorderWindowId } = await chrome.storage.session.get('recorderWindowId');
+    if (recorderWindowId) return;
+    const { marquisNotifications: list = [] } = await chrome.storage.local.get('marquisNotifications');
+    const unread = list.filter(n => !n.isRead).length;
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
+    chrome.action.setBadgeText({ text: unread ? (unread > 99 ? '99+' : String(unread)) : '' });
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.marquisNotifications) syncNotifyBadge();
+});
+
+// Notes & Tasks reminders: one alarm per open task with a due date, at 9:00 that day (tasks carry a date, no
+// time). Rebuilt from marquisTasks whenever it changes, so editing, completing or deleting a task moves or
+// drops its reminder.
+const TASK_ALARM = 'task_due_';
+async function syncTaskReminders() {
+    const { marquisTasks: tasks = [] } = await chrome.storage.local.get('marquisTasks');
+    const want = new Map();
+    for (const t of tasks) {
+        if (!t || t.completed || !t.date || t.id == null) continue;
+        const when = new Date(`${t.date}T09:00`).getTime();
+        if (Number.isFinite(when) && when > Date.now()) want.set(TASK_ALARM + t.id, when);
+    }
+    for (const a of await chrome.alarms.getAll()) {
+        if (a.name.startsWith(TASK_ALARM) && want.get(a.name) !== a.scheduledTime) await chrome.alarms.clear(a.name);
+    }
+    const have = new Set((await chrome.alarms.getAll()).map(a => a.name));
+    for (const [name, when] of want) if (!have.has(name)) await chrome.alarms.create(name, { when });
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.marquisTasks) syncTaskReminders().catch(err => console.warn('Task reminders:', err));
+});
+syncTaskReminders().catch(() => {});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (!alarm.name.startsWith(TASK_ALARM)) return;
+    const { marquisTasks: tasks = [] } = await chrome.storage.local.get('marquisTasks');
+    const task = tasks.find(t => t && TASK_ALARM + t.id === alarm.name);
+    if (!task || task.completed) return;
+    notify({ id: alarm.name, source: 'tasks', level: 'reminder', title: 'Task due today', message: task.title || 'Untitled task' });
+});
+
+// True while the toolbar popup is open: it shows results itself, so events from it need no pop-up.
+async function popupIsOpen() {
+    try { return (await chrome.runtime.getContexts({ contextTypes: ['POPUP'] })).length > 0; } catch { return false; }
 }
 
 // ==========================================
@@ -114,6 +248,12 @@ async function runCapture(type, tabId, sender) {
             chrome.tabs.update(previous.id, { active: true }).catch(() => {});
         }
         if (state === 'FAILED') console.error('Capture error:', err);
+        // The popup usually closed when the tab was activated, so an error would go unseen: record it, with a
+        // device pop-up unless the popup is still open to show it. A cancel is the user's own doing.
+        if (state !== 'CANCELLED') {
+            notify({ source: 'capture', level: 'error', title: type === 'full' ? 'Full-page screenshot failed' : 'Screenshot failed',
+                message: err.message || 'The capture did not finish.', silent: await popupIsOpen() });
+        }
         throw err;
     } finally {
         _capture = null;
@@ -405,7 +545,14 @@ async function openRecorder(request, sender) {
     const o = request.options || {};
     for (const k of ['mic', 'cam', 'draw']) if (k in o) params.set(k, o[k] ? '1' : '0');
     if (o.mode === 'screen' || o.mode === 'camera') params.set('mode', o.mode);
-    const win = await chrome.windows.create({ url: chrome.runtime.getURL(`recorder.html?${params}`), type: 'popup', width: 400, height: 680, focused: true });
+    // Chrome's share picker (Chrome Tab / Window / Entire Screen) opens inside this window and can be no wider
+    // than it: at 400px its tabs and previews were clipped. 680px fits the picker; it is clamped to, and centred
+    // on, the browser window the user is in so it never opens past the edge of a small screen.
+    const host = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+    const fit = host && host.state !== 'minimized' && host.width && host.height ? host : null;
+    const width = Math.min(680, fit ? fit.width : 680), height = Math.min(680, fit ? fit.height : 680);
+    const place = fit ? { left: fit.left + Math.round((fit.width - width) / 2), top: fit.top + Math.round((fit.height - height) / 2) } : {};
+    const win = await chrome.windows.create({ url: chrome.runtime.getURL(`recorder.html?${params}`), type: 'popup', width, height, ...place, focused: true });
     await chrome.storage.session.set({ recorderWindowId: win.id });
 }
 
@@ -413,7 +560,7 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
     const { recorderWindowId } = await chrome.storage.session.get('recorderWindowId');
     if (windowId !== recorderWindowId) return;
     await chrome.storage.session.remove('recorderWindowId');
-    chrome.action.setBadgeText({ text: '' }); // the window can't clear REC itself when it is closed mid-recording
+    syncNotifyBadge(); // the window can't clear REC itself when it is closed mid-recording; the unread count comes back
 });
 
 // ==========================================
@@ -507,14 +654,10 @@ async function focusRules(sites) {
     return rules;
 }
 
-async function notifyFocusEnded(mode) {
-    chrome.notifications.create('focus_timer_ended', {
-        type: 'basic',
-        iconUrl: await getPaddedIcon(chrome.runtime.getURL('img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png')),
-        title: 'Marquis Focus Timer',
-        message: mode === 'focus' ? 'Focus session complete! Take a break.' : 'Break is over! Back to work.',
-        priority: 2
-    });
+function notifyFocusEnded(mode) {
+    notify(mode === 'focus'
+        ? { id: 'focus_timer_ended', source: 'focus', level: 'success', title: 'Focus session complete', message: 'Blocked sites are open again. Time for a break.' }
+        : { id: 'focus_timer_ended', source: 'focus', title: 'Break is over', message: 'Start another focus session when you are ready.' });
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -628,7 +771,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action !== 'switchWorkspace') return false;
     switchWorkspace(request.id, request.windowId).then(
         () => sendResponse({ ok: true }),
-        (err) => sendResponse({ ok: false, error: err.message || String(err) }));
+        async (err) => {
+            sendResponse({ ok: false, error: err.message || String(err) });
+            // The popup closes as soon as the first new tab opens, so a failure part-way would go unseen.
+            notify({ source: 'workspace', level: 'error', title: 'Workspace switch failed', message: err.message || String(err), silent: await popupIsOpen() });
+        });
     return true;
 });
 
@@ -735,33 +882,13 @@ function clearPowerTimer() {
 chrome.alarms.onAlarm.addListener(async (alarm) => {
     // ── Keep Awake Timer ─────────────────────────────────────────────────────
     if (alarm.name === 'kaTimerAlarm') {
-        const data = await chrome.storage.local.get(['kaTimer', 'marquisNotifications', 'unreadNotifCount']);
+        const data = await chrome.storage.local.get(['kaTimer']);
         if (data.kaTimer && data.kaTimer.actions) {
             const actions = data.kaTimer.actions;
-            const safeIcon = await getPaddedIcon(chrome.runtime.getURL('img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png'));
-
-            chrome.notifications.create('ka_timer_ended', {
-                type: 'basic',
-                iconUrl: safeIcon,
-                title: 'Power Session Ended',
-                message: 'Your Keep Awake timer has expired and settings have been reset.',
-                priority: 2
+            notify({
+                id: 'ka_timer_ended', source: 'keepawake', title: 'Keep Awake timer ended',
+                message: actions.resetMode ? 'Normal sleep settings are back.' : 'The timer has run out.'
             });
-
-            let notifs = data.marquisNotifications || [];
-            let unreadCount = data.unreadNotifCount || 0;
-            notifs.unshift({
-                id: Date.now(),
-                title: `Timer Complete`,
-                message: `Your power session has ended and normal sleep settings have been restored.`,
-                type: "info",
-                isRead: false,
-                date: new Date().toISOString(),
-                source: "keepawake"
-            });
-            if (notifs.length > 50) notifs = notifs.slice(0, 50);
-
-            chrome.storage.local.set({ marquisNotifications: notifs, unreadNotifCount: unreadCount + 1 });
 
             if (actions.closeTab) {
                 const audibleTabs = await chrome.tabs.query({ audible: true });
@@ -780,114 +907,135 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
     // ── Kanban Due Notifications ──────────────────────────────────────────────
     if (alarm.name.startsWith('kanban_due_')) {
-        const data = await chrome.storage.local.get(['kanbanAlarms', 'marquisNotifications', 'unreadNotifCount']);
-        const title = (data.kanbanAlarms && data.kanbanAlarms[alarm.name]) ? data.kanbanAlarms[alarm.name] : 'A scheduled task';
-        const safeIcon = await getPaddedIcon(chrome.runtime.getURL('img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png'));
-
-        chrome.notifications.create(alarm.name, {
-            type: 'basic',
-            iconUrl: safeIcon,
-            title: 'Task Deadline Reached!',
-            message: `Your task "${title}" is now due.`,
-            priority: 2,
-            requireInteraction: true
-        });
-
-        chrome.action.getBadgeText({}, (currentText) => {
-            let count = parseInt(currentText) || 0;
-            chrome.action.setBadgeText({ text: (count + 1).toString() });
-            chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
-        });
-
-        let notifs = data.marquisNotifications || [];
-        let unreadCount = data.unreadNotifCount || 0;
-        notifs.unshift({
-            id: Date.now(),
-            title: `Deadline Reached`,
-            message: `Your task "${title}" is now due.`,
-            type: "info",
-            isRead: false,
-            date: new Date().toISOString(),
-            source: "kanban"
-        });
-        if (notifs.length > 50) notifs = notifs.slice(0, 50);
-
-        const updateData = { marquisNotifications: notifs, unreadNotifCount: unreadCount + 1 };
+        const data = await chrome.storage.local.get(['kanbanAlarms']);
+        const title = (data.kanbanAlarms && data.kanbanAlarms[alarm.name]) ? data.kanbanAlarms[alarm.name] : 'A scheduled card';
+        // The id is the alarm name (kanban_due_<cardId>): completing the card removes this entry (kanban.js).
+        notify({ id: alarm.name, source: 'kanban', level: 'reminder', title: 'Card due now', message: title });
         if (data.kanbanAlarms) {
             delete data.kanbanAlarms[alarm.name];
-            updateData.kanbanAlarms = data.kanbanAlarms;
+            chrome.storage.local.set({ kanbanAlarms: data.kanbanAlarms });
         }
-        chrome.storage.local.set(updateData);
     }
 });
 
 // 🟢 BULK URL OPENER
 // popup / bulk page / dock -> SW
-//   { action: 'bulk_open_urls', urls: [lines of user text], target?: 'tabs' | 'window' | 'windowPerUrl' | 'windowPerHost',
-//     delayMs?, max?, sequential? }   (sequential: true is the dock's "one by one" = tabs, 1 s apart)
-//   <- { ok: true, opened, skipped: [lines] }   answered before the tabs open, so the sender may close
-// Opening happens here so a closing popup cannot cut a slow list short.
+//   { action: 'bulk_open_urls', urls: [lines of user text], target?, delayMs?, max?, sequential?, dedupe? }
+//     target: 'tabs' | 'window' (one new window) | 'windowPerHost' | 'groupPerHost' (tab group per domain)
+//             | 'windowPerUrl';  sequential: true is the dock's "one by one" (tabs, 1 s apart)
+//   <- { ok: true, total, skipped: [lines], duplicates }   answered before the tabs open, so the sender may close
+//      { ok: false, busy: true, error }                     a batch is still opening
+//   { action: 'bulk_stop' } <- { ok: true }                 no URL that has not opened yet will open
+// Progress for any open Bulk URL view: storage.session bulkJob
+//   { id, state: 'running' | 'done' | 'stopped' | 'interrupted', target, total, opened, failed: [{ url, error }],
+//     startedAt, endedAt? }
+// One batch at a time, one URL after another (never hundreds of tab requests at once), parsed by the same
+// MarquisUrlList the views use. Already opened tabs are not closed by Stop.
+importScripts('/scripts/url_list.js');
+
+let bulkJob = null; // { cancelled } while a batch runs in this worker
+
+// A worker restart ends a running batch: say so instead of showing it as running forever.
+chrome.storage.session.get('bulkJob').then(({ bulkJob: j }) => {
+    if (j && j.state === 'running') chrome.storage.session.set({ bulkJob: { ...j, state: 'interrupted', endedAt: Date.now() } });
+}).catch(() => {});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'bulk_stop') {
+        if (bulkJob) bulkJob.cancelled = true;
+        sendResponse({ ok: true });
+        return false;
+    }
     if (request.action !== 'bulk_open_urls') return false;
-    const lines = Array.isArray(request.urls) ? request.urls.map(String) : [];
-    const urls = [], skipped = [];
-    for (const line of lines) {
+    if (bulkJob) {
+        sendResponse({ ok: false, busy: true, error: 'A batch is still opening. Stop it or wait for it to finish.' });
+        return false;
+    }
+    const urls = [], skipped = [], seen = new Set();
+    let duplicates = 0;
+    for (const line of Array.isArray(request.urls) ? request.urls.map(String) : []) {
         if (!line.trim()) continue;
-        const url = toHttpUrl(line);
-        if (url) urls.push(url); else skipped.push(line.trim());
+        const { url } = MarquisUrlList.normalize(line);
+        if (!url) { skipped.push(line.trim()); continue; }
+        if (request.dedupe !== false && seen.has(url)) { duplicates++; continue; }
+        seen.add(url);
+        urls.push(url);
     }
     const max = Number(request.max) > 0 ? Number(request.max) : Infinity;
     const list = urls.slice(0, max);
-    const target = request.target || 'tabs';
-    const delayMs = request.sequential ? 1000 : Math.max(0, Number(request.delayMs) || 0);
-    sendResponse({ ok: true, opened: list.length, skipped });
-    bulkOpen(list, target, delayMs).catch(err => console.warn('Bulk open stopped:', err));
+    const target = request.sequential ? 'tabs' : (request.target || 'tabs');
+    const delayMs = request.sequential ? 1000 : Math.min(600000, Math.max(0, Number(request.delayMs) || 0));
+    sendResponse({ ok: true, total: list.length, skipped, duplicates });
+    if (!list.length) return false;
+    const job = bulkJob = { cancelled: false };
+    runBulkJob(job, list, target, delayMs)
+        .catch(err => console.warn('Bulk open stopped:', err))
+        .finally(() => { if (bulkJob === job) bulkJob = null; });
     return false;
 });
 
-// One line of user text -> an http(s) URL, or null. Bare hosts ("example.com/x", "localhost:3000") get http://.
-function toHttpUrl(line) {
-    const s = String(line).trim();
-    if (!s || /^(javascript|data|vbscript|blob|about|mailto|file|chrome|chrome-extension|edge):/i.test(s)) return null;
-    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s) && !/^https?:\/\//i.test(s)) return null;
-    try {
-        const url = new URL(/^https?:\/\//i.test(s) ? s : `http://${s}`);
-        return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname ? url.href : null;
-    } catch (err) {
-        return null;
+async function runBulkJob(job, urls, target, delayMs) {
+    const status = { id: Date.now(), state: 'running', target, total: urls.length, opened: 0, failed: [], startedAt: Date.now() };
+    const publish = () => chrome.storage.session.set({ bulkJob: status }).catch(() => {});
+    await publish();
+    const windows = new Map(), groups = new Map(); // group key -> window id / tab group id
+    for (const [i, url] of urls.entries()) {
+        if (i > 0 && delayMs) await workerSleep(delayMs, job);
+        if (job.cancelled) break;
+        try {
+            await openOne(url, target, windows, groups);
+            status.opened++;
+        } catch (err) {
+            status.failed.push({ url, error: err.message || String(err) });
+        }
+        await publish();
+    }
+    status.state = job.cancelled ? 'stopped' : 'done';
+    status.endedAt = Date.now();
+    await publish();
+    // Long or failed batches end while the user is elsewhere: say how it went (no pop-up if the popup shows it).
+    if (status.failed.length || delayMs || urls.length > 20) {
+        const done = `${status.opened} of ${status.total} opened`;
+        notify({
+            id: `bulk_${status.id}`, source: 'bulk', level: status.failed.length ? 'error' : status.state === 'stopped' ? 'info' : 'success',
+            title: status.state === 'stopped' ? 'Batch stopped' : status.failed.length ? 'Batch finished with errors' : 'Batch opened',
+            message: status.failed.length ? `${done}, ${status.failed.length} failed.` : `${done}.`,
+            silent: await popupIsOpen()
+        });
     }
 }
 
-async function bulkOpen(urls, target, delayMs) {
-    if (!urls.length) return;
-    if (target === 'window') return void await chrome.windows.create({ url: urls });
-    if (target === 'windowPerHost') {
-        const byHost = new Map();
-        for (const url of urls) {
-            const host = new URL(url).hostname;
-            byHost.set(host, [...(byHost.get(host) || []), url]);
+async function openOne(url, target, windows, groups) {
+    if (target === 'windowPerUrl') return void await chrome.windows.create({ url });
+    if (target === 'window' || target === 'windowPerHost') {
+        const key = target === 'window' ? '' : MarquisUrlList.groupKey(url);
+        if (windows.has(key)) {
+            try { return void await chrome.tabs.create({ windowId: windows.get(key), url, active: false }); }
+            catch { windows.delete(key); } // the user closed that window: start a new one
         }
-        for (const group of byHost.values()) await chrome.windows.create({ url: group });
+        windows.set(key, (await chrome.windows.create({ url })).id);
         return;
     }
-    for (const [i, url] of urls.entries()) {
-        if (i > 0 && delayMs) await workerSleep(delayMs);
-        try {
-            if (target === 'windowPerUrl') await chrome.windows.create({ url });
-            else await chrome.tabs.create({ url, active: false });
-        } catch (err) {
-            console.warn('Bulk open skipped', url, err.message);
-        }
+    const tab = await chrome.tabs.create({ url, active: false });
+    if (target !== 'groupPerHost') return;
+    const key = MarquisUrlList.groupKey(url);
+    if (groups.has(key)) {
+        try { return void await chrome.tabs.group({ groupId: groups.get(key), tabIds: tab.id }); }
+        catch { groups.delete(key); } // the group was closed or ungrouped
     }
+    const groupId = await chrome.tabs.group({ tabIds: tab.id });
+    groups.set(key, groupId);
+    await chrome.tabGroups.update(groupId, { title: key }).catch(() => {});
 }
 
-// Waits ms. The worker is stopped after 30 s without events or extension API calls, so a long wait pings
-// an API every 20 s (each call resets that timer, Chrome 110+) and a slow list is not cut short.
-async function workerSleep(ms) {
+// Waits ms, or less once job.cancelled is set (checked every 250 ms). The worker is stopped after 30 s without
+// events or extension API calls, so a long wait pings an API every 20 s (each call resets that timer, Chrome 110+).
+async function workerSleep(ms, job) {
     const end = Date.now() + ms;
-    while (Date.now() < end) {
-        await new Promise(r => setTimeout(r, Math.min(20000, end - Date.now())));
-        await chrome.runtime.getPlatformInfo();
+    let pinged = Date.now();
+    while (Date.now() < end && !job?.cancelled) {
+        await new Promise(r => setTimeout(r, Math.min(250, end - Date.now())));
+        if (Date.now() - pinged >= 20000) { pinged = Date.now(); await chrome.runtime.getPlatformInfo(); }
     }
 }
 
