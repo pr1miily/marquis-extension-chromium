@@ -4,7 +4,9 @@
 // Runs in a content script (the dock, or injected by the popup's Design tools). The background worker takes a
 // screenshot of the visible tab ({ action: 'captureVisibleForPicker' }); the user clicks a pixel of it, shown
 // over the page at its real position, so the pick matches what was on screen.
-globalThis.MarquisEyeDropper ??= class MarquisEyeDropper {
+// Wrapped so the file's completion value is undefined: Firefox's scripting.executeScript({ files }) returns the
+// last expression and rejects one that is not structured-clonable (a class).
+(() => { globalThis.MarquisEyeDropper ??= class MarquisEyeDropper {
     async open() {
         const { dataUrl, error } = (await chrome.runtime.sendMessage({ action: 'captureVisibleForPicker' })) || {};
         if (!dataUrl) throw new DOMException(error || 'This page could not be captured.', 'NotAllowedError');
@@ -77,4 +79,4 @@ globalThis.MarquisEyeDropper ??= class MarquisEyeDropper {
             });
         });
     }
-};
+}; })();

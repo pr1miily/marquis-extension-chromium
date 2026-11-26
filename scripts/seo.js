@@ -391,7 +391,7 @@ function renderSeoImages(filter) {
     if (filter === 'bad') images = images.filter(i => !i.hasAlt);
 
     if (images.length === 0) {
-        list.innerHTML = `<div class="text-center text-muted small py-2">No ${filter} images found.</div>`;
+        list.innerHTML = `<div class="text-center text-muted small py-2">No ${filter === 'all' ? '' : `${filter} `}images found.</div>`;
         return;
     }
 

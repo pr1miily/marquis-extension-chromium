@@ -111,7 +111,11 @@ function showError(msg) {
 }
 
 // ── Recording lifecycle ───────────────────────────────────────
-const pickMime = (formatId) => FORMATS.find(f => f.id === formatId)?.mime.find(m => MediaRecorder.isTypeSupported(m));
+// Without an audio track the type must not name an audio codec: Firefox's MediaRecorder then records nothing
+// and never fires stop ('vp9,opus' -> 'vp9', 'avc1,mp4a.40.2' -> 'avc1').
+const pickMime = (formatId, withAudio = true) => FORMATS.find(f => f.id === formatId)?.mime
+    .map(m => withAudio ? m : m.replace(/,(opus|mp4a[.\d]*)/, ''))
+    .find(m => MediaRecorder.isTypeSupported(m));
 
 // Readable message for a getUserMedia / getDisplayMedia / MediaRecorder failure at `step`.
 function describeError(err, step) {
@@ -162,7 +166,7 @@ async function start() {
             audioTrack = dest.stream.getAudioTracks()[0];
         }
         s.output = new MediaStream([s.videoTrack, ...(audioTrack ? [audioTrack] : [])]);
-        s.mimeType = pickMime(settings.format) || pickMime('webm');
+        s.mimeType = pickMime(settings.format, !!audioTrack) || pickMime('webm', !!audioTrack);
         if (!s.mimeType) throw new Error('This browser cannot record video.');
         s.quality = q;
 

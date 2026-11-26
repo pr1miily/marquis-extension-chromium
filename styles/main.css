@@ -139,6 +139,7 @@ h6, .h6 { font-size: 0.9375rem; }
 .toast { --bs-toast-padding-x: var(--mq-pad); --bs-toast-padding-y: var(--mq-pad-sm); }
 /* Bootstrap draws the track in --bs-secondary-bg, which equals the card background in several themes. */
 .form-range::-webkit-slider-runnable-track { background-color: var(--bs-border-color); }
+.form-range::-moz-range-track { background-color: var(--bs-border-color); }
 
 /* 🟢 Base body styles for ALL pages (Full Screen) */
 body {
