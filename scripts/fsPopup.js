@@ -46,7 +46,7 @@
             const tabs = await chrome.tabs.query({});
             selector.innerHTML = '';
 
-            const BLOCKED = ['chrome://', 'chrome-extension://', 'edge://', 'about:', 'data:'];
+            const BLOCKED = ['chrome://', 'chrome-extension://', 'moz-extension://', 'edge://', 'about:', 'data:'];
             tabs.forEach(tab => {
                 if (!tab.url || BLOCKED.some(p => tab.url.startsWith(p))) return;
                 const opt       = document.createElement('option');

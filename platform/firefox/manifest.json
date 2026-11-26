@@ -1,0 +1,90 @@
+{
+  "manifest_version": 3,
+  "name": "Marquis of Meow'An",
+  "version": "4.0.41927",
+  "description": "A multifunction Browser Extension designed to serve as a centralized digital workspace",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@marquis-of-meowan",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "personallyIdentifyingInfo",
+          "personalCommunications",
+          "locationInfo",
+          "browsingActivity",
+          "websiteContent",
+          "searchTerms"
+        ],
+        "optional": ["technicalAndInteraction"]
+      }
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting",
+    "storage",
+    "unlimitedStorage",
+    "webNavigation",
+    "clipboardRead",
+    "clipboardWrite",
+    "notifications",
+    "tabGroups",
+    "alarms",
+    "geolocation",
+    "declarativeNetRequest"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["scripts/dock_loader.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "host_permissions": ["<all_urls>"],
+  "icons": {
+    "16": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png",
+    "48": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png",
+    "128": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "diffWindow.html",
+        "blocked.html",
+        "simulator.html",
+        "kanban_fullscreen.html",
+        "bulk_url_tools.html",
+        "styles/*",
+        "img/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "action": {
+    "default_popup": "Marquis.html",
+    "default_title": "Marquis",
+    "default_icon": {
+      "16": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png",
+      "24": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png",
+      "32": "img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png"
+    }
+  },
+  "background": {
+    "scripts": [
+      "platform/firefox/event_page.js",
+      "scripts/notify_sources.js",
+      "scripts/capture_store.js",
+      "scripts/fullpage_stitch.js",
+      "config.js",
+      "scripts/focus_timer.js",
+      "scripts/url_list.js",
+      "background.js"
+    ]
+  }
+}

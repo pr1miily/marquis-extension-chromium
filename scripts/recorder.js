@@ -572,6 +572,11 @@ async function loadSettings() {
             $('liveStatus').textContent = `Camera pop-out failed: ${err.message}`;
         }
     });
+    // Firefox before 153 has no Picture-in-Picture API: the button stays, off, and its label says why.
+    if (!('requestPictureInPicture' in HTMLVideoElement.prototype)) {
+        $('camPipBtn').disabled = true;
+        $('camPipBtn').lastChild.textContent = 'Pop out camera (not supported in this browser)';
+    }
     document.querySelectorAll('#setupPanel input, #setupPanel select').forEach(el => el.addEventListener('change', readControls));
     window.addEventListener('beforeunload', (e) => {
         if (LIVE.includes(state)) { e.preventDefault(); e.returnValue = ''; } // parts saved so far stay recoverable

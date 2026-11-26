@@ -652,6 +652,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const kaTimerStatus = document.getElementById('kaTimerStatus');
     let kaInterval;
 
+    // Firefox has no power API: the two awake states stay listed but off, with the reason shown under them.
+    if (!chrome.power) {
+        kaRadios.forEach(r => { r.disabled = r.value !== 'default'; });
+        document.getElementById('kaPowerUnsupported')?.classList.remove('d-none');
+    }
+
     function checkKeepAwakeVisibility() {
         if (kaIconContainer) kaIconContainer.classList.remove('d-none');
         syncKaUI();

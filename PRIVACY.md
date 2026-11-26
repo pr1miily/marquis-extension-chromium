@@ -12,9 +12,9 @@ listed below with exactly what it receives.
 
 Workspaces, kanban boards, notes, tasks, favorites, palettes and settings are kept in your browser's extension
 storage (`chrome.storage.local`). Screenshots and screen recordings are kept in the extension's own database on
-this device (IndexedDB). Your theme, weather unit and license key are kept in `chrome.storage.sync`, so Chrome
-Sync copies them to your Google account when sync for extensions is on. Uninstalling the extension deletes its
-local data.
+this device (IndexedDB). Your theme, weather unit and license key are kept in `chrome.storage.sync`, so your
+browser's sync (Chrome Sync with a Google account, or Firefox Sync with a Mozilla account) copies them when sync
+for extensions or add-ons is on. Uninstalling the extension deletes its local data.
 
 ## 3. Third-Party Couriers
 
@@ -35,7 +35,7 @@ These services are contacted only when you use the tool named, except the networ
   seconds to measure your connection. No data of yours is included.
 
 Tools that read a web page (SEO, QA, highlighter, Meet attendance) do that work inside your browser.
-After uninstalling, Chrome opens a short feedback page.
+After uninstalling, the browser opens a short feedback page.
 
 ## 4. Analytics & Tracking
 

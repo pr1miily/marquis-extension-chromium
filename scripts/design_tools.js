@@ -27,9 +27,14 @@ function initDesignTools() {
     let colorHistory = [];
 
     // --- INITIALIZE ---
-    chrome.storage.local.get(['designColorHistory'], (res) => {
+    chrome.storage.local.get(['designColorHistory', 'designPickedColor'], (res) => {
         colorHistory = res.designColorHistory || [];
         renderHistory();
+        // Picked on the page while the popup was closed (pickFromActiveTab): it becomes the active colour.
+        if (res.designPickedColor) {
+            updateActiveColor(res.designPickedColor);
+            chrome.storage.local.remove('designPickedColor');
+        }
     });
     
     checkContrast();
@@ -37,10 +42,7 @@ function initDesignTools() {
     // --- EVENTS ---
     if (btnEyeDropper) {
         btnEyeDropper.addEventListener('click', async () => {
-            if (!window.EyeDropper) {
-                if (window.showGlobalAlert) window.showGlobalAlert('Feature Unavailable', 'Alas, your browser lacks the refinement to support the EyeDropper API.', 'error');
-                return;
-            }
+            if (!window.EyeDropper) return pickFromActiveTab();
 
             try {
                 const eyeDropper = new EyeDropper();
@@ -96,6 +98,31 @@ function initDesignTools() {
     }
 
     // --- FUNCTIONS ---
+
+    // No EyeDropper (Firefox): pick from a screenshot of the active tab (scripts/screen_picker.js). The popup
+    // closes so the page can be clicked; the page adds the colour to the history and copies it.
+    async function pickFromActiveTab() {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        try {
+            await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['scripts/screen_picker.js'] });
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                    new MarquisEyeDropper().open().then(async ({ sRGBHex: hex }) => {
+                        const { designColorHistory: list = [] } = await chrome.storage.local.get('designColorHistory');
+                        await chrome.storage.local.set({
+                            designColorHistory: [hex, ...list.filter(c => c !== hex)].slice(0, 12),
+                            designPickedColor: hex
+                        });
+                        await navigator.clipboard.writeText(hex).catch(() => {});
+                    }).catch(() => {}); // Esc: nothing picked
+                }
+            });
+            window.close();
+        } catch {
+            window.showGlobalAlert?.('Feature Unavailable', 'Colors can be picked on web pages only, not on browser or add-on pages.', 'error');
+        }
+    }
 
     function updateActiveColor(hex) {
         colorPreview.style.backgroundColor = hex;

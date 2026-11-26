@@ -2592,16 +2592,8 @@
         const eyedropperBtn = shadow.querySelector('#qa-mini-eyedropper-btn');
         if (eyedropperBtn) {
             eyedropperBtn.addEventListener('click', async () => {
-                if (!window.EyeDropper) {
-                    // Feedback on the button itself: a native alert() would block the host page.
-                    const label = eyedropperBtn.textContent;
-                    eyedropperBtn.textContent = 'Not supported';
-                    eyedropperBtn.title = 'This browser has no EyeDropper API';
-                    setTimeout(() => { eyedropperBtn.textContent = label; }, 2000);
-                    return;
-                }
-
-                const eyeDropper = new EyeDropper();
+                // Firefox has no EyeDropper: scripts/screen_picker.js (injected with the dock) picks from a screenshot.
+                const eyeDropper = new (window.EyeDropper || globalThis.MarquisEyeDropper)();
                 
                 // Optional: Provide visual feedback that it's active
                 const originalText = eyedropperBtn.innerText;

@@ -34,15 +34,17 @@ async function notifyNow({ id, source, title, message = '', level = 'info', sile
     await chrome.storage.local.set({ marquisNotifications: next, unreadNotifCount: next.filter(n => !n.isRead).length });
     if (silent || !wantsPopup(prefs, src, level)) return;
     notifyIconUrl ||= await getPaddedIcon(chrome.runtime.getURL('img/46087a1c-4b4d-4a36-a268-1b57cb06908c.png'));
-    chrome.notifications.create(id, {
+    const options = {
         type: 'basic',
         iconUrl: notifyIconUrl,
         title: entry.title,
         message: entry.message,
         contextMessage: `Marquis · ${MarquisNotifySources[src].label}`,
-        priority: level === 'reminder' ? 2 : level === 'error' ? 1 : 0,
-        requireInteraction: level === 'reminder'
-    });
+        priority: level === 'reminder' ? 2 : level === 'error' ? 1 : 0
+    };
+    // requireInteraction keeps a reminder on screen; Firefox rejects the option, so show it without there.
+    try { await chrome.notifications.create(id, { ...options, requireInteraction: level === 'reminder' }); }
+    catch { await chrome.notifications.create(id, options); }
 }
 
 function wantsPopup(prefs, source, level) {
@@ -511,7 +513,7 @@ async function saveFullPage(c, tab, { parts, notes }) {
 }
 
 function isUrlAllowed(url) {
-  return !['chrome://', 'chrome-extension://', 'edge://', 'about:'].some(p => url.startsWith(p));
+  return !['chrome://', 'chrome-extension://', 'moz-extension://', 'edge://', 'about:'].some(p => url.startsWith(p));
 }
 
 // ==========================================
@@ -678,12 +680,26 @@ chrome.runtime.onMessage.addListener((request) => {
 // ==========================================
 // scripts/dock_loader.js is the only declared content script. While dockEnabled is true it asks for the dock:
 //   loader -> SW { action: 'injectDock' }; the dock is injected into that frame only.
-const DOCK_FILES = ['scripts/safe_html.js', 'scripts/kanban_store.js', 'scripts/focus_timer.js', 'scripts/mq_float.js', 'scripts/inject_dock.js'];
+const DOCK_FILES = ['scripts/safe_html.js', 'scripts/kanban_store.js', 'scripts/focus_timer.js', 'scripts/mq_float.js', 'scripts/screen_picker.js', 'scripts/inject_dock.js'];
 
 chrome.runtime.onMessage.addListener((request, sender) => {
     if (request.action !== 'injectDock' || !sender.tab) return;
     chrome.scripting.executeScript({ target: { tabId: sender.tab.id, frameIds: [sender.frameId] }, files: DOCK_FILES })
         .catch(err => console.warn('Dock injection skipped:', err.message));
+});
+
+// Colour picker for browsers without the EyeDropper API (scripts/screen_picker.js, Firefox): a screenshot of
+// the sender's visible tab, taken with Marquis' own floating UI hidden.
+//   content script -> SW { action: 'captureVisibleForPicker' } -> { dataUrl } | { error }
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action !== 'captureVisibleForPicker' || !sender.tab) return false;
+    const tab = sender.tab;
+    (async () => {
+        await setOwnUiHidden(tab.id, true);
+        try { return { dataUrl: await captureVisibleTab(tab.windowId) }; }
+        finally { await setOwnUiHidden(tab.id, false); }
+    })().then(sendResponse, err => sendResponse({ error: err.message || String(err) }));
+    return true;
 });
 
 // Tabs opened before an install/update never got the declared loader, and switching the dock on must
@@ -780,7 +796,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Same refusal list as isAllowedUrl in scripts/workspace.js.
-const isWorkspaceUrl = (url) => !!url && !['chrome://', 'chrome-extension://', 'edge://', 'about:', 'file://'].some(p => url.startsWith(p));
+const isWorkspaceUrl = (url) => !!url && !['chrome://', 'chrome-extension://', 'moz-extension://', 'edge://', 'about:', 'file://'].some(p => url.startsWith(p));
 
 async function switchWorkspace(id, windowId) {
     const { odh_workspaces: workspaces = [] } = await chrome.storage.local.get('odh_workspaces');
@@ -831,6 +847,8 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 });
 
 async function setPowerMode(mode) {
+    // Firefox has no power API: the state stays at default there, and the Keep Awake panel says why (script.js).
+    if (!chrome.power) return void chrome.storage.local.set({ kaCurrentMode: 'default' });
     if (mode === 'display') {
         chrome.power.requestKeepAwake('display');
         await manageHeartbeat(true); 

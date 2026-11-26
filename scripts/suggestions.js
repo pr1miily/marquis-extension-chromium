@@ -14,12 +14,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         
+        // Firefox build: browser and version details are optional "technical data" (data_collection_permissions),
+        // sent only when the user allowed it in about:addons.
+        const shareTech = !chrome.runtime.getManifest().browser_specific_settings
+            || await chrome.permissions.contains({ data_collection: ['technicalAndInteraction'] }).catch(() => false);
         const sysInfo = `
 --- Diagnostic Info ---
 Type: ${type}
 User Email: ${email || 'Not provided'}
-User Agent: ${navigator.userAgent}
-Extension Version: ${chrome.runtime.getManifest().version}
+User Agent: ${shareTech ? navigator.userAgent : 'Not shared'}
+Extension Version: ${shareTech ? chrome.runtime.getManifest().version : 'Not shared'}
 Time: ${new Date().toISOString()}
 -----------------------`;
 

@@ -49,6 +49,22 @@ There is no build step: the repository is the extension.
 
 After changing `background.js` or `manifest.json`, click the reload button on the extension's card.
 
+## Store packages (Chrome and Firefox)
+
+```
+node tools/build.js            # both targets (Node 22+, no dependencies)
+node tools/build.js firefox    # one target: chrome | firefox
+npx web-ext lint -s dist/firefox
+```
+
+Output goes to `dist/` (gitignored): `dist/chrome/` and `dist/firefox/` are loadable unpacked builds, and
+`dist/marquis-<target>-<version>.zip` is the store upload (same input, byte-identical zip).
+Both builds share every file. The Firefox build swaps in `platform/firefox/manifest.json` (event-page background,
+gecko id, data-collection declaration) and takes its `version` from the root `manifest.json`. Copy any new
+permission, web-accessible file or content script into it as well; the build stops if `background.js` imports a
+file that the Firefox manifest does not list. To try it: `about:debugging` > This Firefox > Load Temporary Add-on >
+`dist/firefox/manifest.json`.
+
 ## Project layout
 
 | Path | What it is |
@@ -62,6 +78,8 @@ After changing `background.js` or `manifest.json`, click the reload button on th
 | `blocked.html` | Page shown for sites blocked during a focus session |
 | `img/` | Logo and artwork |
 | `tests/` | Self-test pages |
+| `platform/firefox/` | Firefox-only manifest and event-page shim (used by the Firefox build) |
+| `tools/build.js` | Builds `dist/chrome`, `dist/firefox` and the store zips |
 
 ## Tests
 

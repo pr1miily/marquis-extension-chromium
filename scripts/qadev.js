@@ -3,7 +3,7 @@ function initQaDev() {
     // 🟢 SECURITY GATEKEEPER
     const isRestrictedUrl = (url) => {
         if (!url) return true;
-        const prefixes = ['chrome://', 'edge://', 'about:', 'chrome-extension://'];
+        const prefixes = ['chrome://', 'edge://', 'about:', 'chrome-extension://', 'moz-extension://'];
         const domains = ['chrome.google.com/webstore', 'chromewebstore.google.com'];
         return prefixes.some(p => url.startsWith(p)) || domains.some(d => url.includes(d));
     };

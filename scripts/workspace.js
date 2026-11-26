@@ -98,7 +98,7 @@ function initWorkspace() {
         if (!url) return false;
         const restrictedPrefixes = [
             'chrome://', 
-            'chrome-extension://', 
+            'chrome-extension://', 'moz-extension://', 
             'edge://', 
             'about:', 
             'file://'

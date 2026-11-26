@@ -3594,7 +3594,7 @@
                     <p>Your data is yours alone. The Marquis works inside your browser and has no server of its own. It does not collect your browsing history or your tool data. A few tools need an outside service to do their job; each is listed below with exactly what it receives.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">2. Where Your Data Lives</h6>
-                    <p>Workspaces, kanban boards, notes, tasks, favorites, palettes and settings are kept in your browser's extension storage (<code>chrome.storage.local</code>). Screenshots and screen recordings are kept in the extension's own database on this device (IndexedDB). Your theme, weather unit and license key are kept in <code>chrome.storage.sync</code>, so Chrome Sync copies them to your Google account when sync for extensions is on. Uninstalling the extension deletes its local data.</p>
+                    <p>Workspaces, kanban boards, notes, tasks, favorites, palettes and settings are kept in your browser's extension storage (<code>chrome.storage.local</code>). Screenshots and screen recordings are kept in the extension's own database on this device (IndexedDB). Your theme, weather unit and license key are kept in <code>chrome.storage.sync</code>, so your browser's sync (Chrome Sync with a Google account, or Firefox Sync with a Mozilla account) copies them when sync for extensions or add-ons is on. Uninstalling the extension deletes its local data.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">3. Third-Party Couriers</h6>
                     <p>These services are contacted only when you use the tool named, except the network indicator:</p>
@@ -3609,7 +3609,7 @@
                         <li><strong>Support</strong>: the <em>ko-fi.com</em> page loads only when you open "A bowl of milk?".</li>
                         <li><strong>Network indicator</strong>: while the popup is open it sends a small request to Cloudflare (<em>1.1.1.1</em>) every few seconds to measure your connection. No data of yours is included.</li>
                     </ul>
-                    <p>Tools that read a web page (SEO, QA, highlighter, Meet attendance) do that work inside your browser. After uninstalling, Chrome opens a short feedback page.</p>
+                    <p>Tools that read a web page (SEO, QA, highlighter, Meet attendance) do that work inside your browser. After uninstalling, the browser opens a short feedback page.</p>
 
                     <h6 class="fw-bold text-body mb-2 mt-3">4. Analytics & Tracking</h6>
                     <p>The Marquis employs no hidden trackers, no analytics engines, and no telemetry. Your workflow remains entirely undisturbed and unmonitored.</p>
@@ -3767,6 +3767,7 @@
 							</label>
 						</div>
 					</div>
+					<p id="kaPowerUnsupported" class="d-none small text-body-secondary mb-2">This browser does not let extensions keep the computer awake, so Screen On and System Running are not available. The countdown timer still works.</p>
 
 					<h6 class="fw-bold small border-bottom pb-2 mb-2">Countdown Timer</h6>
 					<div class="mb-2">
